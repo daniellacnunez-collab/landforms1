@@ -61,7 +61,15 @@
     <div class="absolute top-0 left-0 right-0 p-3 sm:p-4 flex flex-wrap items-center justify-between pointer-events-none gap-2 z-10">
       
       <!-- Left: Distance & Coins/Milk -->
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <div class="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-2xl border-2 border-emerald-400/40 text-white flex items-center gap-2 shadow-lg">
+          <span class="text-lg">🧑‍🎓</span>
+          <div class="flex flex-col leading-tight">
+            <span class="text-[10px] tracking-wider uppercase text-emerald-300 font-black">Climber</span>
+            <span id="hud-student-name" class="font-extrabold text-xs sm:text-sm text-white truncate max-w-[95px]">Guest</span>
+          </div>
+        </div>
+
         <div class="bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border-2 border-white/20 text-white flex items-center gap-2 shadow-lg">
           <span class="text-xl">🏁</span>
           <div class="flex flex-col leading-tight">
@@ -88,9 +96,9 @@
       </div>
 
       <!-- Center / Right: Fuel Gauge & Controls Info -->
-      <div class="flex items-center gap-3 pointer-events-auto">
+      <div class="flex items-center gap-2 sm:gap-3 pointer-events-auto">
         <!-- Fuel Gauge -->
-        <div class="bg-black/65 backdrop-blur-md p-2 px-3 rounded-2xl border-2 border-white/20 text-white flex items-center gap-3 shadow-lg w-44 sm:w-56">
+        <div class="bg-black/65 backdrop-blur-md p-2 px-3 rounded-2xl border-2 border-white/20 text-white flex items-center gap-3 shadow-lg w-40 sm:w-52">
           <span class="text-2xl animate-pulse">⛽</span>
           <div class="flex-1">
             <div class="flex justify-between items-center text-xs font-black uppercase mb-1">
@@ -102,6 +110,12 @@
             </div>
           </div>
         </div>
+
+        <!-- Student Progress Dashboard Button -->
+        <button id="btn-progress-hud" class="pointer-events-auto bg-sky-500 hover:bg-sky-400 active:scale-95 text-neutral-950 font-bold p-2.5 rounded-2xl shadow-lg border-2 border-white/40 flex items-center gap-1.5 transition-all" title="View All Students Progress & Milk Leaderboard">
+          <span class="text-base">📊</span>
+          <span class="hidden md:inline text-xs font-black tracking-wide uppercase">Progress</span>
+        </button>
 
         <!-- Settings / Quiz Manager Button -->
         <button id="btn-quiz-bank" class="pointer-events-auto bg-amber-500 hover:bg-amber-400 active:scale-95 text-neutral-900 font-bold p-2.5 rounded-2xl shadow-lg border-2 border-white/40 flex items-center gap-1 transition-all" title="Edit Quiz Questions">
@@ -142,20 +156,20 @@
     </div>
 
     <!-- Start / Title Screen Overlay -->
-    <div id="start-screen" class="absolute inset-0 bg-neutral-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-40 transition-opacity duration-300">
-      <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-md w-full text-center shadow-2xl border-2 border-yellow-400/40 relative">
+    <div id="start-screen" class="absolute inset-0 bg-neutral-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-40 transition-opacity duration-300 overflow-y-auto">
+      <div class="glass-panel p-5 sm:p-7 rounded-3xl max-w-md w-full text-center shadow-2xl border-2 border-yellow-400/40 relative my-auto">
         <div class="inline-block bg-red-600 text-white px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest shadow mb-2">
           Mountain Climber Landforms-Edition
         </div>
-        <h1 class="game-font text-4xl sm:text-5xl text-yellow-400 drop-shadow-md mb-2 tracking-wide">
+        <h1 class="game-font text-3xl sm:text-5xl text-yellow-400 drop-shadow-md mb-1.5 tracking-wide">
           HILL CLIMB <span class="text-white">REVIEW</span>
         </h1>
-        <p class="text-sm text-neutral-300 font-semibold mb-5">
-          Drive up rugged mountains! Drink <strong class="text-sky-300">Milk 🥛</strong> for extra score, and grab <strong class="text-red-400">Fuel ⛽</strong> canisters to identify Earth's landforms!
+        <p class="text-xs sm:text-sm text-neutral-300 font-semibold mb-4">
+          Drive up rugged mountains! Drink <strong class="text-sky-300">Milk 🥛</strong> to build your class total, and grab <strong class="text-red-400">Fuel ⛽</strong> canisters to answer landform questions!
         </p>
 
         <!-- Driver Preview Icon -->
-        <div class="w-32 h-24 mx-auto mb-5 flex items-center justify-center bg-sky-900/40 rounded-2xl border border-white/10 p-2">
+        <div class="w-28 h-20 mx-auto mb-4 flex items-center justify-center bg-sky-900/40 rounded-2xl border border-white/10 p-2">
           <svg viewBox="0 0 160 100" class="w-full h-full drop-shadow-lg">
             <!-- Mini Jeep Art -->
             <path d="M 30,70 L 130,70 L 125,45 L 85,45 L 75,25 L 35,25 L 30,70 Z" fill="#d32f2f" stroke="#8b0000" stroke-width="3" />
@@ -172,8 +186,22 @@
           </svg>
         </div>
 
-        <div class="space-y-3">
-          <button id="btn-start" class="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white game-font text-2xl py-3.5 px-6 rounded-2xl shadow-xl border-b-4 border-green-800 active:translate-y-1 transition-all">
+        <div class="space-y-2.5">
+          <!-- Student Login / Name Input -->
+          <div class="bg-neutral-900/90 p-3 rounded-2xl border-2 border-emerald-400/40 text-left">
+            <div class="flex items-center justify-between mb-1">
+              <label for="student-name-input" class="text-xs font-black text-emerald-300 uppercase tracking-wide">
+                🧑‍🎓 Student Name
+              </label>
+              <span id="student-milk-preview" class="text-[11px] font-bold text-sky-300">🥛 0 Total Milk</span>
+            </div>
+            <input type="text" id="student-name-input" maxlength="28" placeholder="Enter student name (e.g., Leo, Mia)..." class="w-full bg-neutral-800 border border-white/20 rounded-xl px-3 py-2 text-sm font-bold text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-400" />
+            <div id="returning-students-chips" class="flex flex-wrap gap-1.5 mt-2">
+              <!-- Quick-select chips for returning students -->
+            </div>
+          </div>
+
+          <button id="btn-start" class="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white game-font text-2xl py-3 px-6 rounded-2xl shadow-xl border-b-4 border-green-800 active:translate-y-1 transition-all">
             START CLIMBING 🚀
           </button>
 
@@ -203,12 +231,17 @@
             </div>
           </div>
           
-          <button id="btn-custom-start" class="w-full bg-neutral-800 hover:bg-neutral-700 text-amber-300 font-bold py-2.5 px-4 rounded-xl border border-white/10 text-sm transition-all flex items-center justify-center gap-2">
-            <span>⚙️ Edit Questions / Audio / Settings</span>
-          </button>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btn-progress-start" class="w-full bg-sky-600/90 hover:bg-sky-500 text-white font-extrabold py-2.5 px-3 rounded-xl border border-sky-300/30 text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 shadow">
+              <span>📊 Student Progress</span>
+            </button>
+            <button id="btn-custom-start" class="w-full bg-neutral-800 hover:bg-neutral-700 text-amber-300 font-bold py-2.5 px-3 rounded-xl border border-white/10 text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5">
+              <span>⚙️ Questions &amp; Audio</span>
+            </button>
+          </div>
         </div>
 
-        <div class="mt-4 text-xs text-neutral-400">
+        <div class="mt-3 text-xs text-neutral-400">
           Controls: Gas = <kbd class="px-1.5 py-0.5 bg-neutral-800 rounded border border-neutral-700">▶</kbd> or <kbd class="px-1.5 py-0.5 bg-neutral-800 rounded border border-neutral-700">D</kbd> | Brake/Reverse = <kbd class="px-1.5 py-0.5 bg-neutral-800 rounded border border-neutral-700">◀</kbd> or <kbd class="px-1.5 py-0.5 bg-neutral-800 rounded border border-neutral-700">A</kbd>
         </div>
       </div>
@@ -556,16 +589,17 @@
       <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-md w-full text-center shadow-2xl border-2 border-red-500/60">
         <div class="text-5xl mb-2" id="gameover-icon">💥</div>
         <h2 id="gameover-title" class="game-font text-3xl sm:text-4xl text-red-500 mb-1">OUT OF FUEL!</h2>
-        <p id="gameover-msg" class="text-sm text-neutral-300 font-medium mb-5">Your engine spluttered to a halt on the steep mountain.</p>
+        <p id="gameover-msg" class="text-sm text-neutral-300 font-medium mb-1">Your engine spluttered to a halt on the steep mountain.</p>
+        <p id="gameover-student-banner" class="text-xs font-black text-emerald-300 uppercase tracking-wide mb-4">Progress Saved for Guest Climber</p>
 
         <!-- Stats Box -->
-        <div class="bg-neutral-900/80 rounded-2xl p-4 border border-white/10 grid grid-cols-2 gap-3 mb-6 text-left">
+        <div class="bg-neutral-900/80 rounded-2xl p-4 border border-white/10 grid grid-cols-2 gap-3 mb-5 text-left">
           <div class="bg-neutral-800/60 p-2.5 rounded-xl">
             <div class="text-[10px] text-neutral-400 uppercase font-black">Distance</div>
             <div id="go-stat-distance" class="game-font text-xl text-yellow-400">0 m</div>
           </div>
           <div class="bg-neutral-800/60 p-2.5 rounded-xl">
-            <div class="text-[10px] text-neutral-400 uppercase font-black">Milk Collected</div>
+            <div class="text-[10px] text-neutral-400 uppercase font-black">Run Milk / Total</div>
             <div id="go-stat-milk" class="game-font text-xl text-sky-400">0</div>
           </div>
           <div class="bg-neutral-800/60 p-2.5 rounded-xl">
@@ -578,9 +612,108 @@
           </div>
         </div>
 
-        <button id="btn-restart" class="w-full bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-neutral-950 game-font text-2xl py-3 rounded-2xl shadow-xl border-b-4 border-amber-700 active:translate-y-1 transition-all">
-          TRY AGAIN 🔄
-        </button>
+        <div class="space-y-2.5">
+          <button id="btn-restart" class="w-full bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-neutral-950 game-font text-2xl py-3 rounded-2xl shadow-xl border-b-4 border-amber-700 active:translate-y-1 transition-all">
+            TRY AGAIN 🔄
+          </button>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btn-gameover-progress" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-extrabold py-2.5 px-3 rounded-xl text-xs transition-all">
+              📊 Class Progress
+            </button>
+            <button id="btn-switch-student" class="w-full bg-neutral-800 hover:bg-neutral-700 text-emerald-300 font-extrabold py-2.5 px-3 rounded-xl border border-white/10 text-xs transition-all">
+              🧑‍🎓 Switch Student
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Teacher Student Progress Dashboard Modal -->
+    <div id="progress-modal" class="absolute inset-0 bg-neutral-950/92 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 z-[65] hidden">
+      <div class="glass-panel p-5 sm:p-6 rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border-2 border-sky-400/40">
+        
+        <!-- Header -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/10">
+          <div class="flex items-center gap-2.5">
+            <span class="text-3xl">📊</span>
+            <div>
+              <h2 class="game-font text-2xl text-yellow-400 leading-none">Student Progress &amp; Milk Tracker</h2>
+              <span class="text-xs text-neutral-300 font-semibold">Live class leaderboard tracking milk gathered, distance climbed, and quiz accuracy</span>
+            </div>
+          </div>
+          <button id="btn-close-progress" class="text-neutral-400 hover:text-white p-1 text-3xl font-bold leading-none">&times;</button>
+        </div>
+
+        <!-- Summary KPI Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 my-3">
+          <div class="bg-neutral-900/90 p-3 rounded-2xl border border-white/10">
+            <div class="text-[10px] uppercase font-black text-neutral-400 tracking-wider">Total Students</div>
+            <div id="kpi-total-students" class="game-font text-2xl text-white mt-0.5">0</div>
+          </div>
+          <div class="bg-sky-950/70 p-3 rounded-2xl border border-sky-400/30">
+            <div class="text-[10px] uppercase font-black text-sky-300 tracking-wider">Class Milk Gathered</div>
+            <div id="kpi-total-milk" class="game-font text-2xl text-sky-300 mt-0.5">0 🥛</div>
+          </div>
+          <div class="bg-emerald-950/70 p-3 rounded-2xl border border-emerald-400/30">
+            <div class="text-[10px] uppercase font-black text-emerald-300 tracking-wider">Avg Quiz Accuracy</div>
+            <div id="kpi-avg-accuracy" class="game-font text-2xl text-emerald-400 mt-0.5">0%</div>
+          </div>
+          <div class="bg-amber-950/70 p-3 rounded-2xl border border-amber-400/30">
+            <div class="text-[10px] uppercase font-black text-amber-300 tracking-wider">Top Distance</div>
+            <div id="kpi-top-distance" class="game-font text-2xl text-yellow-400 mt-0.5">0 m</div>
+          </div>
+        </div>
+
+        <!-- Search, Sort & Quick Add Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div class="flex flex-1 min-w-[200px] items-center gap-2">
+            <input type="text" id="progress-search-input" placeholder="🔍 Search student name..." class="flex-1 bg-neutral-900 border border-white/20 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-sky-400" />
+            <select id="progress-sort-select" class="bg-neutral-900 border border-white/20 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none focus:border-sky-400 cursor-pointer">
+              <option value="milk">Sort: Most Milk 🥛</option>
+              <option value="score">Sort: High Score ⭐</option>
+              <option value="distance">Sort: Best Distance 🏁</option>
+              <option value="accuracy">Sort: Quiz Accuracy 🎯</option>
+              <option value="recent">Sort: Last Played 🕒</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btn-export-progress-csv" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-2 rounded-xl shadow transition-all">
+              📥 Export CSV (Excel)
+            </button>
+            <button id="btn-clear-progress" class="bg-red-600/25 hover:bg-red-600/40 text-red-300 font-bold text-xs px-3 py-2 rounded-xl border border-red-400/30 transition-all">
+              🗑️ Reset Class Data
+            </button>
+          </div>
+        </div>
+
+        <!-- Student Progress Table -->
+        <div class="flex-1 overflow-auto rounded-2xl border border-white/10 bg-neutral-900/75">
+          <table class="w-full text-left border-collapse text-xs text-white">
+            <thead class="bg-neutral-950/90 text-[11px] uppercase text-neutral-400 font-black sticky top-0 z-10">
+              <tr>
+                <th class="py-3 px-3">Rank</th>
+                <th class="py-3 px-3">Student</th>
+                <th class="py-3 px-3">Total Milk 🥛</th>
+                <th class="py-3 px-3">Best Distance</th>
+                <th class="py-3 px-3">Quiz Accuracy</th>
+                <th class="py-3 px-3">High Score</th>
+                <th class="py-3 px-3">Runs</th>
+                <th class="py-3 px-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="progress-table-body" class="divide-y divide-white/10">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Footer -->
+        <div class="pt-3 mt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs text-neutral-400">
+          <span>💡 Milk &amp; quiz stats update automatically every time a student collects milk, answers a question, or finishes a climb.</span>
+          <button id="btn-done-progress" class="bg-sky-500 hover:bg-sky-400 text-neutral-950 font-black px-5 py-2 rounded-xl shadow transition-all">
+            Back to Game
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1053,6 +1186,86 @@
     }
 
     loadQuestions();
+
+    /* =====================================================================
+       STUDENT PROGRESS & MILK TRACKER STORAGE
+       ===================================================================== */
+    const STORAGE_KEY_STUDENTS = 'edu_climber_student_progress_v1';
+    const STORAGE_KEY_CURRENT_STUDENT = 'edu_climber_active_student';
+    let studentRecords = {};
+    let activeStudentName = localStorage.getItem(STORAGE_KEY_CURRENT_STUDENT) || '';
+
+    function loadStudentRecords() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY_STUDENTS);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && typeof parsed === 'object') {
+            studentRecords = parsed;
+          }
+        }
+      } catch (e) {
+        studentRecords = {};
+      }
+    }
+
+    function saveStudentRecords() {
+      try {
+        localStorage.setItem(STORAGE_KEY_STUDENTS, JSON.stringify(studentRecords));
+      } catch (e) {
+        console.error("Failed to save student progress:", e);
+      }
+    }
+
+    function normalizeStudentKey(name) {
+      return (name || 'Guest Climber').trim().toLowerCase();
+    }
+
+    function getOrCreateStudent(name) {
+      const cleanName = (name || '').trim() || 'Guest Climber';
+      const key = normalizeStudentKey(cleanName);
+      if (!studentRecords[key]) {
+        studentRecords[key] = {
+          name: cleanName,
+          totalMilk: 0,
+          bestRunMilk: 0,
+          bestDistance: 0,
+          totalDistance: 0,
+          questionsCorrect: 0,
+          questionsAnswered: 0,
+          highScore: 0,
+          runsPlayed: 0,
+          lastPlayed: Date.now()
+        };
+      } else {
+        studentRecords[key].name = cleanName;
+      }
+      return studentRecords[key];
+    }
+
+    function setActiveStudent(name) {
+      const cleanName = (name || '').trim() || 'Guest Climber';
+      activeStudentName = cleanName;
+      localStorage.setItem(STORAGE_KEY_CURRENT_STUDENT, cleanName);
+      const record = getOrCreateStudent(cleanName);
+      saveStudentRecords();
+
+      const hudName = document.getElementById('hud-student-name');
+      if (hudName) hudName.textContent = cleanName;
+
+      const input = document.getElementById('student-name-input');
+      if (input && input.value.trim() !== cleanName && cleanName !== 'Guest Climber') {
+        input.value = cleanName;
+      }
+
+      const preview = document.getElementById('student-milk-preview');
+      if (preview) {
+        preview.textContent = `🥛 ${record.totalMilk} Total Milk (${record.runsPlayed} runs)`;
+      }
+      return record;
+    }
+
+    loadStudentRecords();
 
     /* =====================================================================
        2D PROCEDURAL TERRAIN GENERATION
@@ -1754,8 +1967,11 @@
         this.score = 0;
         this.milkCount = 0;
         this.quizCorrectCount = 0;
+        this.quizAnsweredCount = 0;
+        this.runStatsCommitted = false;
         this.distanceTraveled = 0;
         this.maxDistance = 0;
+        this.pausedFromState = 'START';
 
         this.camera = { x: 0, y: 0, scale: 1.0, targetScale: 1.0 };
         this.controls = { gas: false, brake: false };
@@ -1793,6 +2009,9 @@
         this.btnBrake = document.getElementById('btn-brake');
         this.btnQuizBank = document.getElementById('btn-quiz-bank');
         this.btnCustomStart = document.getElementById('btn-custom-start');
+        this.btnProgressHud = document.getElementById('btn-progress-hud');
+        this.btnProgressStart = document.getElementById('btn-progress-start');
+        this.progressModal = document.getElementById('progress-modal');
         this.btnCloseEditor = document.getElementById('btn-close-editor');
         this.btnSaveEditor = document.getElementById('btn-save-editor');
         this.btnAddQuestion = document.getElementById('btn-add-question');
@@ -1827,6 +2046,66 @@
         setTruckAcceleration(truckAccelerationMultiplier);
         setQuestionMode(currentQuestionMode);
         populateVoiceSelector();
+        this.initStudentSelector();
+
+        // Student Progress Dashboard Listeners
+        if (this.btnProgressHud) {
+          this.btnProgressHud.addEventListener('click', () => this.openProgressDashboard());
+        }
+        if (this.btnProgressStart) {
+          this.btnProgressStart.addEventListener('click', () => this.openProgressDashboard());
+        }
+        const btnGameoverProgress = document.getElementById('btn-gameover-progress');
+        if (btnGameoverProgress) {
+          btnGameoverProgress.addEventListener('click', () => this.openProgressDashboard());
+        }
+        const btnSwitchStudent = document.getElementById('btn-switch-student');
+        if (btnSwitchStudent) {
+          btnSwitchStudent.addEventListener('click', () => {
+            if (this.gameOverModal) this.gameOverModal.classList.add('hidden');
+            this.renderStudentChips();
+            if (this.startScreen) this.startScreen.classList.remove('hidden');
+            this.state = 'START';
+          });
+        }
+        const btnCloseProgress = document.getElementById('btn-close-progress');
+        const btnDoneProgress = document.getElementById('btn-done-progress');
+        if (btnCloseProgress) btnCloseProgress.addEventListener('click', () => this.closeProgressDashboard());
+        if (btnDoneProgress) btnDoneProgress.addEventListener('click', () => this.closeProgressDashboard());
+
+        const progressSearch = document.getElementById('progress-search-input');
+        const progressSort = document.getElementById('progress-sort-select');
+        if (progressSearch) progressSearch.addEventListener('input', () => this.renderProgressDashboard());
+        if (progressSort) progressSort.addEventListener('change', () => this.renderProgressDashboard());
+
+        const btnExportCsv = document.getElementById('btn-export-progress-csv');
+        if (btnExportCsv) btnExportCsv.addEventListener('click', () => this.exportProgressCSV());
+
+        const btnClearProgress = document.getElementById('btn-clear-progress');
+        if (btnClearProgress) {
+          btnClearProgress.addEventListener('click', () => {
+            if (btnClearProgress.dataset.confirming === 'true') {
+              studentRecords = {};
+              saveStudentRecords();
+              this.renderStudentChips();
+              this.renderProgressDashboard();
+              btnClearProgress.dataset.confirming = 'false';
+              btnClearProgress.textContent = '🗑️ Reset Class Data';
+              btnClearProgress.classList.remove('bg-red-600', 'text-white');
+            } else {
+              btnClearProgress.dataset.confirming = 'true';
+              btnClearProgress.textContent = '⚠️ Click Again to Wipe All!';
+              btnClearProgress.classList.add('bg-red-600', 'text-white');
+              setTimeout(() => {
+                if (btnClearProgress && btnClearProgress.isConnected) {
+                  btnClearProgress.dataset.confirming = 'false';
+                  btnClearProgress.textContent = '🗑️ Reset Class Data';
+                  btnClearProgress.classList.remove('bg-red-600', 'text-white');
+                }
+              }, 3000);
+            }
+          });
+        }
 
         const startModeSelect = document.getElementById('start-mode-select');
         const editorModeSelect = document.getElementById('editor-mode-select');
@@ -1939,6 +2218,9 @@
         // Start & Restart buttons
         if (this.btnStart) {
           this.btnStart.addEventListener('click', () => {
+            const nameInput = document.getElementById('student-name-input');
+            const enteredName = nameInput ? nameInput.value.trim() : '';
+            setActiveStudent(enteredName || activeStudentName || 'Guest Climber');
             sounds.init();
             this.startGame();
           });
@@ -2244,6 +2526,11 @@
       }
 
       startGame() {
+        const currentStudent = setActiveStudent(activeStudentName || 'Guest Climber');
+        currentStudent.runsPlayed += 1;
+        currentStudent.lastPlayed = Date.now();
+        saveStudentRecords();
+
         this.state = 'PLAYING';
         if (this.startScreen) this.startScreen.classList.add('hidden');
         if (this.gameOverModal) this.gameOverModal.classList.add('hidden');
@@ -2252,6 +2539,8 @@
         this.score = 0;
         this.milkCount = 0;
         this.quizCorrectCount = 0;
+        this.quizAnsweredCount = 0;
+        this.runStatsCommitted = false;
         this.distanceTraveled = 0;
         this.maxDistance = 0;
 
@@ -2339,7 +2628,9 @@
             sounds.playCorrectFanfare();
             this.createConfetti();
 
+            this.quizAnsweredCount++;
             this.quizCorrectCount++;
+            this.recordStudentQuiz(true);
             this.car.fuel = 100;
             this.score += 500;
             this.fx.spawnFloatingText('+500 REFUEL 100%!', this.car.x, this.car.y - 70, '#4ade80');
@@ -2357,6 +2648,8 @@
             this.quizImageContainer.classList.remove('hidden');
             sounds.playBuzzer();
 
+            this.quizAnsweredCount++;
+            this.recordStudentQuiz(false);
             this.car.fuel = Math.min(100, this.car.fuel + 35);
             feedback.className = "p-3.5 rounded-2xl text-sm font-bold text-center mb-4 bg-amber-950/80 border border-amber-500/40 text-amber-200";
             feedback.innerHTML = `📖 <strong>LET'S REVIEW:</strong> <em>${questionObj.explanation || ''}</em><br><span class="text-xs text-yellow-300 mt-1 inline-block">+35% Emergency fuel provided. Keep climbing!</span>`;
@@ -2408,6 +2701,8 @@
         buttons.forEach(b => b.disabled = true);
 
         const isCorrect = selectedIndex === this.currentQuiz.correctIndex;
+        this.quizAnsweredCount++;
+        this.recordStudentQuiz(isCorrect);
 
         if (isCorrect) {
           sounds.playCorrectFanfare();
@@ -2470,10 +2765,17 @@
         sounds.playCrash();
         sounds.stopEngine();
         this.state = 'GAMEOVER';
+        this.commitRunDistanceAndScore();
 
+        const student = getOrCreateStudent(activeStudentName);
         const title = document.getElementById('gameover-title');
         const icon = document.getElementById('gameover-icon');
         const msg = document.getElementById('gameover-msg');
+        const banner = document.getElementById('gameover-student-banner');
+
+        if (banner) {
+          banner.textContent = `✅ Saved to ${student.name}'s Profile (${student.totalMilk} Total Milk 🥛)`;
+        }
 
         if (reason === 'fuel') {
           icon.textContent = '⛽';
@@ -2486,11 +2788,274 @@
         }
 
         document.getElementById('go-stat-distance').textContent = `${Math.floor(this.maxDistance)} m`;
-        document.getElementById('go-stat-milk').textContent = `${this.milkCount}`;
-        document.getElementById('go-stat-quiz').textContent = `${this.quizCorrectCount}`;
+        document.getElementById('go-stat-milk').textContent = `${this.milkCount} (Total: ${student.totalMilk})`;
+        document.getElementById('go-stat-quiz').textContent = `${this.quizCorrectCount} / ${this.quizAnsweredCount}`;
         document.getElementById('go-stat-score').textContent = `${this.score}`;
 
         this.gameOverModal.classList.remove('hidden');
+      }
+
+      /* Student Tracking & Progress Dashboard Methods */
+      initStudentSelector() {
+        const input = document.getElementById('student-name-input');
+        if (input) {
+          if (activeStudentName && activeStudentName !== 'Guest Climber') {
+            input.value = activeStudentName;
+          }
+          input.addEventListener('input', () => {
+            const val = input.value.trim();
+            const key = normalizeStudentKey(val || 'Guest Climber');
+            const existing = studentRecords[key];
+            const preview = document.getElementById('student-milk-preview');
+            if (preview) {
+              preview.textContent = existing
+                ? `🥛 ${existing.totalMilk} Total Milk (${existing.runsPlayed} runs)`
+                : '🥛 New Climber Profile';
+            }
+          });
+        }
+        setActiveStudent(activeStudentName || 'Guest Climber');
+        this.renderStudentChips();
+      }
+
+      renderStudentChips() {
+        const container = document.getElementById('returning-students-chips');
+        if (!container) return;
+        container.innerHTML = '';
+
+        const students = Object.values(studentRecords)
+          .sort((a, b) => (b.lastPlayed || 0) - (a.lastPlayed || 0))
+          .slice(0, 8);
+
+        if (students.length === 0) return;
+
+        students.forEach(st => {
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          const isSelected = normalizeStudentKey(st.name) === normalizeStudentKey(activeStudentName);
+          chip.className = `px-2.5 py-1 rounded-full text-[11px] font-extrabold border transition-all flex items-center gap-1 ${
+            isSelected
+              ? 'bg-emerald-500 text-neutral-950 border-emerald-300 shadow'
+              : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border-white/15'
+          }`;
+          chip.innerHTML = `<span>${st.name}</span><span class="opacity-80">🥛${st.totalMilk}</span>`;
+          chip.addEventListener('click', () => {
+            const input = document.getElementById('student-name-input');
+            if (input) input.value = st.name === 'Guest Climber' ? '' : st.name;
+            setActiveStudent(st.name);
+            this.renderStudentChips();
+          });
+          container.appendChild(chip);
+        });
+      }
+
+      recordStudentMilk() {
+        const student = getOrCreateStudent(activeStudentName);
+        student.totalMilk += 1;
+        if (this.milkCount > student.bestRunMilk) {
+          student.bestRunMilk = this.milkCount;
+        }
+        student.lastPlayed = Date.now();
+        saveStudentRecords();
+      }
+
+      recordStudentQuiz(isCorrect) {
+        const student = getOrCreateStudent(activeStudentName);
+        student.questionsAnswered += 1;
+        if (isCorrect) {
+          student.questionsCorrect += 1;
+        }
+        student.lastPlayed = Date.now();
+        saveStudentRecords();
+      }
+
+      commitRunDistanceAndScore() {
+        if (this.runStatsCommitted) return;
+        this.runStatsCommitted = true;
+        const student = getOrCreateStudent(activeStudentName);
+        const distRounded = Math.floor(this.maxDistance);
+        student.totalDistance += distRounded;
+        if (distRounded > student.bestDistance) {
+          student.bestDistance = distRounded;
+        }
+        if (this.score > student.highScore) {
+          student.highScore = this.score;
+        }
+        student.lastPlayed = Date.now();
+        saveStudentRecords();
+      }
+
+      openProgressDashboard() {
+        this.pausedFromState = this.state;
+        if (this.state === 'PLAYING') {
+          this.state = 'PAUSED_PROGRESS';
+          this.controls.gas = false;
+          this.controls.brake = false;
+          if (this.btnGas) this.btnGas.classList.remove('active');
+          if (this.btnBrake) this.btnBrake.classList.remove('active');
+          sounds.stopEngine();
+        }
+        // Snapshot current live distance & score if mid-run
+        const student = getOrCreateStudent(activeStudentName);
+        const liveDist = Math.floor(this.maxDistance);
+        if (liveDist > student.bestDistance) student.bestDistance = liveDist;
+        if (this.score > student.highScore) student.highScore = this.score;
+        saveStudentRecords();
+
+        this.renderProgressDashboard();
+        if (this.progressModal) this.progressModal.classList.remove('hidden');
+      }
+
+      closeProgressDashboard() {
+        if (this.progressModal) this.progressModal.classList.add('hidden');
+        this.renderStudentChips();
+        if (this.pausedFromState === 'PLAYING') {
+          this.state = 'PLAYING';
+        }
+      }
+
+      renderProgressDashboard() {
+        const tbody = document.getElementById('progress-table-body');
+        if (!tbody) return;
+
+        const searchTerm = (document.getElementById('progress-search-input')?.value || '').trim().toLowerCase();
+        const sortBy = document.getElementById('progress-sort-select')?.value || 'milk';
+
+        const allStudents = Object.values(studentRecords);
+
+        // Compute KPIs
+        const totalStudents = allStudents.length;
+        const totalClassMilk = allStudents.reduce((acc, s) => acc + (s.totalMilk || 0), 0);
+        const totalAnswered = allStudents.reduce((acc, s) => acc + (s.questionsAnswered || 0), 0);
+        const totalCorrect = allStudents.reduce((acc, s) => acc + (s.questionsCorrect || 0), 0);
+        const avgAccuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
+        const topDistance = allStudents.reduce((max, s) => Math.max(max, s.bestDistance || 0), 0);
+        const maxStudentMilk = Math.max(1, ...allStudents.map(s => s.totalMilk || 0));
+
+        document.getElementById('kpi-total-students').textContent = `${totalStudents}`;
+        document.getElementById('kpi-total-milk').textContent = `${totalClassMilk} 🥛`;
+        document.getElementById('kpi-avg-accuracy').textContent = `${avgAccuracy}%`;
+        document.getElementById('kpi-top-distance').textContent = `${topDistance} m`;
+
+        let filtered = allStudents.filter(s => s.name.toLowerCase().includes(searchTerm));
+
+        filtered.sort((a, b) => {
+          if (sortBy === 'milk') return (b.totalMilk - a.totalMilk) || (b.highScore - a.highScore);
+          if (sortBy === 'score') return (b.highScore - a.highScore) || (b.totalMilk - a.totalMilk);
+          if (sortBy === 'distance') return (b.bestDistance - a.bestDistance) || (b.totalMilk - a.totalMilk);
+          if (sortBy === 'accuracy') {
+            const accA = a.questionsAnswered > 0 ? a.questionsCorrect / a.questionsAnswered : -1;
+            const accB = b.questionsAnswered > 0 ? b.questionsCorrect / b.questionsAnswered : -1;
+            return (accB - accA) || (b.questionsCorrect - a.questionsCorrect);
+          }
+          return (b.lastPlayed || 0) - (a.lastPlayed || 0);
+        });
+
+        tbody.innerHTML = '';
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="8" class="py-8 px-4 text-center text-neutral-400 font-bold">
+                No student records found yet. Enter a student name on the Start Screen and start climbing! 🚜🥛
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        filtered.forEach((s, index) => {
+          const rankMedal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+          const accPct = s.questionsAnswered > 0 ? Math.round((s.questionsCorrect / s.questionsAnswered) * 100) : null;
+          const accBadgeClass = accPct === null
+            ? 'bg-neutral-800 text-neutral-400'
+            : accPct >= 80
+              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30'
+              : accPct >= 50
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-400/30'
+                : 'bg-red-500/20 text-red-300 border border-red-400/30';
+
+          const milkBarPct = Math.min(100, Math.round(((s.totalMilk || 0) / maxStudentMilk) * 100));
+          const isCurrent = normalizeStudentKey(s.name) === normalizeStudentKey(activeStudentName);
+
+          const tr = document.createElement('tr');
+          tr.className = `hover:bg-white/5 transition-colors ${isCurrent ? 'bg-emerald-950/30' : ''}`;
+          tr.innerHTML = `
+            <td class="py-3 px-3 font-black text-sm">${rankMedal}</td>
+            <td class="py-3 px-3">
+              <div class="flex items-center gap-2">
+                <span class="w-7 h-7 rounded-full bg-sky-500/20 border border-sky-400/40 flex items-center justify-center font-black text-sky-300 text-xs shrink-0">
+                  ${s.name.charAt(0).toUpperCase()}
+                </span>
+                <div>
+                  <div class="font-extrabold text-white flex items-center gap-1.5">
+                    <span>${s.name}</span>
+                    ${isCurrent ? '<span class="text-[9px] bg-emerald-500 text-neutral-950 px-1.5 py-0.2 rounded font-black uppercase">Active</span>' : ''}
+                  </div>
+                  <div class="text-[10px] text-neutral-400">Best Run Milk: ${s.bestRunMilk || 0} 🥛</div>
+                </div>
+              </div>
+            </td>
+            <td class="py-3 px-3">
+              <div class="font-black text-sky-300 text-sm">${s.totalMilk || 0} 🥛</div>
+              <div class="w-24 bg-neutral-800 h-1.5 rounded-full overflow-hidden mt-1">
+                <div class="bg-sky-400 h-full rounded-full" style="width: ${milkBarPct}%"></div>
+              </div>
+            </td>
+            <td class="py-3 px-3 font-extrabold text-yellow-300">${s.bestDistance || 0} m</td>
+            <td class="py-3 px-3">
+              <span class="px-2 py-0.5 rounded-lg font-extrabold text-[11px] ${accBadgeClass}">
+                ${accPct !== null ? `${accPct}% (${s.questionsCorrect}/${s.questionsAnswered})` : 'No Quiz Yet'}
+              </span>
+            </td>
+            <td class="py-3 px-3 font-extrabold text-amber-300">${s.highScore || 0}</td>
+            <td class="py-3 px-3 font-bold text-neutral-300">${s.runsPlayed || 0}</td>
+            <td class="py-3 px-3 text-right">
+              <button type="button" class="btn-del-student text-neutral-400 hover:text-red-400 font-bold px-2 py-1 rounded hover:bg-red-500/10 transition-colors" title="Remove student record">
+                🗑️
+              </button>
+            </td>
+          `;
+
+          tr.querySelector('.btn-del-student').addEventListener('click', () => {
+            const key = normalizeStudentKey(s.name);
+            delete studentRecords[key];
+            saveStudentRecords();
+            this.renderStudentChips();
+            this.renderProgressDashboard();
+          });
+
+          tbody.appendChild(tr);
+        });
+      }
+
+      exportProgressCSV() {
+        const allStudents = Object.values(studentRecords).sort((a, b) => (b.totalMilk - a.totalMilk));
+        const headers = ['Rank', 'Student Name', 'Total Milk Gathered', 'Best Single-Run Milk', 'Best Distance (m)', 'Total Distance (m)', 'Questions Correct', 'Questions Answered', 'Quiz Accuracy (%)', 'High Score', 'Runs Played'];
+        const rows = allStudents.map((s, idx) => {
+          const acc = s.questionsAnswered > 0 ? Math.round((s.questionsCorrect / s.questionsAnswered) * 100) : 0;
+          return [
+            idx + 1,
+            `"${(s.name || '').replace(/"/g, '""')}"`,
+            s.totalMilk || 0,
+            s.bestRunMilk || 0,
+            s.bestDistance || 0,
+            s.totalDistance || 0,
+            s.questionsCorrect || 0,
+            s.questionsAnswered || 0,
+            acc,
+            s.highScore || 0,
+            s.runsPlayed || 0
+          ].join(',');
+        });
+
+        const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent([headers.join(','), ...rows].join('\n'));
+        const link = document.createElement('a');
+        link.setAttribute('href', csvContent);
+        link.setAttribute('download', `class_landforms_progress_${new Date().toISOString().slice(0, 10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
       }
 
       updateHUD() {
@@ -2797,12 +3362,14 @@
           this.fx.spawnExhaust(exhaustX, exhaustY, this.car.angle + Math.PI);
         }
 
+        // Collectibles check & spawn
         this.collectibles.updateAndSpawn(this.car.x, this.terrain);
         this.collectibles.checkCollisions(
           this.car,
           (item) => {
             sounds.playMilkSound();
             this.milkCount++;
+            this.recordStudentMilk();
             this.score += 100;
             this.fx.spawnFloatingText('+100 MILK 🥛', item.x, item.y - 20, '#38bdf8');
           },
