@@ -1,0 +1,2950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Mountain Climber - Landforms Review Edition</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * {
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      font-family: 'Nunito', sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #74c3e8;
+    }
+    .game-font {
+      font-family: 'Fredoka One', cursive, sans-serif;
+    }
+    .pedal-btn {
+      transition: transform 0.08s ease, filter 0.08s ease;
+      box-shadow: 0 8px 0 rgba(0, 0, 0, 0.35), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+    }
+    .pedal-btn:active, .pedal-btn.active {
+      transform: translateY(6px);
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35), inset 0 2px 4px rgba(0, 0, 0, 0.3);
+      filter: brightness(0.9);
+    }
+    .glass-panel {
+      background: rgba(18, 25, 38, 0.88);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 3px solid rgba(255, 255, 255, 0.2);
+    }
+    @keyframes confetti-fall {
+      0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(600px) rotate(720deg); opacity: 0; }
+    }
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      animation: confetti-fall 2.2s linear forwards;
+    }
+  </style>
+</head>
+<body class="w-screen h-screen overflow-hidden flex flex-col justify-between select-none">
+
+  <!-- Canvas Container -->
+  <div id="game-container" class="relative w-full h-full">
+    <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+
+    <!-- Top HUD Overlay -->
+    <div class="absolute top-0 left-0 right-0 p-3 sm:p-4 flex flex-wrap items-center justify-between pointer-events-none gap-2 z-10">
+      
+      <!-- Left: Distance & Coins/Milk -->
+      <div class="flex items-center gap-3">
+        <div class="bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border-2 border-white/20 text-white flex items-center gap-2 shadow-lg">
+          <span class="text-xl">🏁</span>
+          <div class="flex flex-col leading-tight">
+            <span class="text-[10px] tracking-wider uppercase text-yellow-300 font-black">Distance</span>
+            <span id="hud-distance" class="game-font text-lg text-white">0 m</span>
+          </div>
+        </div>
+
+        <div class="bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border-2 border-white/20 text-white flex items-center gap-2 shadow-lg">
+          <span class="text-xl">🥛</span>
+          <div class="flex flex-col leading-tight">
+            <span class="text-[10px] tracking-wider uppercase text-sky-300 font-black">Milk</span>
+            <span id="hud-milk" class="game-font text-lg text-white">0</span>
+          </div>
+        </div>
+
+        <div class="bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border-2 border-white/20 text-white flex items-center gap-2 shadow-lg hidden sm:flex">
+          <span class="text-xl">⭐</span>
+          <div class="flex flex-col leading-tight">
+            <span class="text-[10px] tracking-wider uppercase text-amber-300 font-black">Score</span>
+            <span id="hud-score" class="game-font text-lg text-yellow-300">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center / Right: Fuel Gauge & Controls Info -->
+      <div class="flex items-center gap-3 pointer-events-auto">
+        <!-- Fuel Gauge -->
+        <div class="bg-black/65 backdrop-blur-md p-2 px-3 rounded-2xl border-2 border-white/20 text-white flex items-center gap-3 shadow-lg w-44 sm:w-56">
+          <span class="text-2xl animate-pulse">⛽</span>
+          <div class="flex-1">
+            <div class="flex justify-between items-center text-xs font-black uppercase mb-1">
+              <span class="text-red-400">Fuel</span>
+              <span id="hud-fuel-pct" class="font-bold text-white">100%</span>
+            </div>
+            <div class="w-full bg-neutral-800 rounded-full h-3.5 p-0.5 border border-white/20 overflow-hidden">
+              <div id="hud-fuel-bar" class="h-full rounded-full bg-gradient-to-r from-red-600 via-amber-400 to-green-500 transition-all duration-150" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings / Quiz Manager Button -->
+        <button id="btn-quiz-bank" class="pointer-events-auto bg-amber-500 hover:bg-amber-400 active:scale-95 text-neutral-900 font-bold p-2.5 rounded-2xl shadow-lg border-2 border-white/40 flex items-center gap-1 transition-all" title="Edit Quiz Questions">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+          <span class="hidden md:inline text-xs font-black tracking-wide uppercase">Questions</span>
+        </button>
+
+        <!-- Sound Toggle -->
+        <button id="btn-sound" class="pointer-events-auto bg-neutral-800 hover:bg-neutral-700 active:scale-95 text-white p-2.5 rounded-2xl shadow-lg border-2 border-white/20 transition-all">
+          <span id="sound-icon" class="text-lg">🔊</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Touch Pedals (Bottom HUD) -->
+    <div class="absolute bottom-4 left-0 right-0 px-6 sm:px-12 flex justify-between items-end pointer-events-none z-10">
+      <!-- Brake / Tilt Back Pedal -->
+      <button id="btn-brake" class="pointer-events-auto pedal-btn bg-gradient-to-b from-red-500 to-red-700 text-white font-black rounded-3xl w-24 h-28 sm:w-28 sm:h-32 flex flex-col items-center justify-center border-4 border-red-300 border-b-red-900 active:border-b-red-400">
+        <span class="game-font text-2xl tracking-wide">BRAKE</span>
+        <span class="text-[10px] opacity-80 mt-1 uppercase font-extrabold tracking-wider">REV / TILT ⤹</span>
+        <span class="text-xs mt-1 text-red-200">◀ [A / ←]</span>
+      </button>
+
+      <!-- Speed / RPM Mini Display -->
+      <div class="hidden sm:flex flex-col items-center bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border-2 border-white/20 text-white mb-2 shadow-lg">
+        <span class="text-[10px] tracking-wider uppercase text-neutral-400 font-bold">Speedometer</span>
+        <span id="hud-speed" class="game-font text-2xl text-emerald-400">0 <span class="text-xs text-white">km/h</span></span>
+      </div>
+
+      <!-- Gas / Tilt Forward Pedal -->
+      <button id="btn-gas" class="pointer-events-auto pedal-btn bg-gradient-to-b from-emerald-500 to-green-700 text-white font-black rounded-3xl w-24 h-28 sm:w-28 sm:h-32 flex flex-col items-center justify-center border-4 border-emerald-300 border-b-green-950 active:border-b-green-500">
+        <span class="game-font text-2xl tracking-wide">GAS</span>
+        <span class="text-[10px] opacity-80 mt-1 uppercase font-extrabold tracking-wider">FWD / TILT ⤷</span>
+        <span class="text-xs mt-1 text-emerald-200">[D / →] ▶</span>
+      </button>
+    </div>
+
+    <!-- Start / Title Screen Overlay -->
+    <div id="start-screen" class="absolute inset-0 bg-neutral-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-40 transition-opacity duration-300">
+      <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-md w-full text-center shadow-2xl border-2 border-yellow-400/40 relative">
+        <div class="inline-block bg-red-600 text-white px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest shadow mb-2">
+          Mountain Climber Landforms-Edition
+        </div>
+        <h1 class="game-font text-4xl sm:text-5xl text-yellow-400 drop-shadow-md mb-2 tracking-wide">
+          HILL CLIMB <span class="text-white">REVIEW</span>
+        </h1>
+        <p class="text-sm text-neutral-300 font-semibold mb-5">
+          Drive up rugged mountains! Drink <strong class="text-sky-300">Milk 🥛</strong> for extra score, and grab <strong class="text-red-400">Fuel ⛽</strong> canisters to identify Earth's landforms!
+        </p>
+
+        <!-- Driver Preview Icon -->
+        <div class="w-32 h-24 mx-auto mb-5 flex items-center justify-center bg-sky-900/40 rounded-2xl border border-white/10 p-2">
+          <svg viewBox="0 0 160 100" class="w-full h-full drop-shadow-lg">
+            <!-- Mini Jeep Art -->
+            <path d="M 30,70 L 130,70 L 125,45 L 85,45 L 75,25 L 35,25 L 30,70 Z" fill="#d32f2f" stroke="#8b0000" stroke-width="3" />
+            <rect x="75" y="30" width="35" height="15" rx="3" fill="#81d4fa" />
+            <!-- Driver head -->
+            <circle cx="58" cy="22" r="10" fill="#f5cba7" />
+            <path d="M 46,18 C 50,10 66,10 70,18 L 76,19 L 46,19 Z" fill="#c0392b" />
+            <rect x="42" y="18" width="12" height="3" rx="1.5" fill="#962d22" />
+            <!-- Wheels -->
+            <circle cx="45" cy="72" r="14" fill="#263238" stroke="#37474f" stroke-width="4" />
+            <circle cx="115" cy="72" r="14" fill="#263238" stroke="#37474f" stroke-width="4" />
+            <circle cx="45" cy="72" r="6" fill="#78909c" />
+            <circle cx="115" cy="72" r="6" fill="#78909c" />
+          </svg>
+        </div>
+
+        <div class="space-y-3">
+          <button id="btn-start" class="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white game-font text-2xl py-3.5 px-6 rounded-2xl shadow-xl border-b-4 border-green-800 active:translate-y-1 transition-all">
+            START CLIMBING 🚀
+          </button>
+
+          <!-- Question Mode / Set Selector -->
+          <div class="bg-neutral-900/80 p-3 rounded-2xl border border-amber-400/30 text-left">
+            <label for="start-mode-select" class="block text-xs font-black text-amber-300 uppercase tracking-wide mb-1.5">
+              📚 Select Question Mode
+            </label>
+            <select id="start-mode-select" class="w-full bg-neutral-800 border border-white/20 rounded-xl px-3 py-2 text-xs sm:text-sm font-bold text-white focus:outline-none focus:border-amber-400 cursor-pointer">
+              <option value="pictures">1. Landform Pictures (Multiple Choice)</option>
+              <option value="definitions">2. Landform Definitions (No Choices / Oral)</option>
+              <option value="both">3. Both Question Sets Combined</option>
+            </select>
+          </div>
+
+          <!-- Truck Acceleration Tuner -->
+          <div class="bg-neutral-900/80 p-3 rounded-2xl border border-white/15 text-left">
+            <div class="flex justify-between items-center text-xs font-bold text-neutral-300 mb-1">
+              <span>🏎️ Truck Acceleration Power</span>
+              <span id="start-accel-label" class="text-emerald-400 font-black">1.0x (Standard)</span>
+            </div>
+            <input type="range" id="start-accel-slider" min="0.5" max="2.2" step="0.1" value="1.0" class="w-full accent-emerald-500 cursor-pointer" />
+            <div class="flex justify-between text-[10px] text-neutral-400 mt-0.5">
+              <span>Gentle (0.5x)</span>
+              <span>Balanced (1.0x)</span>
+              <span>Turbo (2.2x)</span>
+            </div>
+          </div>
+          
+          <button id="btn-custom-start" class="w-full bg-neutral-800 hover:bg-neutral-700 text-amber-300 font-bold py-2.5 px-4 rounded-xl border border-white/10 text-sm transition-all flex items-center justify-center gap-2">
+            <span>⚙️ Edit Questions / Audio / Settings</span>
+          </button>
+        </div>
+
+        <div class="mt-4 text-xs text-neutral-400">
+          Controls: Gas = <kbd class="px-1.5 py-0.5 bg-neutral-800 rounded border border-neutral-700">▶</kbd> or <kbd class="px-1.5 py-0.5 bg-neutral-800 rounded border border-neutral-700">D</kbd> | Brake/Reverse = <kbd class="px-1.5 py-0.5 bg-neutral-800 rounded border border-neutral-700">◀</kbd> or <kbd class="px-1.5 py-0.5 bg-neutral-800 rounded border border-neutral-700">A</kbd>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fuel Quiz Modal -->
+    <div id="quiz-modal" class="absolute inset-0 bg-neutral-950/85 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden transition-opacity duration-200">
+      <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-lg w-full shadow-2xl border-2 border-red-500/50 relative overflow-hidden">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+          <div class="flex items-center gap-2">
+            <span class="text-3xl">⛽</span>
+            <div>
+              <h2 class="game-font text-xl text-yellow-400 leading-none">FUEL STOP QUIZ!</h2>
+              <span class="text-[11px] font-bold text-neutral-300 uppercase">Answer correctly for 100% Full Tank!</span>
+            </div>
+          </div>
+          <span id="quiz-timer" class="game-font text-lg bg-red-600/60 text-white px-2.5 py-1 rounded-xl border border-red-400/40">30s</span>
+        </div>
+
+        <!-- Question Body -->
+        <div class="mb-5 bg-neutral-900/70 p-4 rounded-2xl border border-white/10">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <span id="quiz-category" class="inline-block bg-yellow-500/20 text-yellow-300 text-[11px] font-black uppercase px-2 py-0.5 rounded-md">Category</span>
+            <div class="flex items-center gap-2">
+              <label class="flex items-center gap-1 text-[11px] text-neutral-300 font-bold cursor-pointer bg-neutral-800/90 px-2.5 py-1 rounded-full border border-white/10" title="Automatically read question & options aloud">
+                <input type="checkbox" id="toggle-auto-read" checked class="accent-sky-500 cursor-pointer" />
+                <span>Auto-Read</span>
+              </label>
+              <button type="button" id="btn-play-question-audio" class="bg-sky-600 hover:bg-sky-500 active:scale-95 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 shadow transition-all">
+                <span>🔊 Read Again</span>
+              </button>
+            </div>
+          </div>
+          <p id="quiz-question-text" class="text-base sm:text-lg font-bold text-white leading-relaxed mb-3">
+            Which landform is shown in this picture?
+          </p>
+          <!-- Prominent Question Diagram / Picture Container -->
+          <div id="quiz-image-container" class="mb-3 text-center bg-black/40 rounded-2xl p-2 border border-white/10 relative group">
+            <div id="quiz-img-wrapper" class="w-full flex items-center justify-center">
+              <img id="quiz-image" src="" alt="Question diagram" class="max-h-48 sm:max-h-56 mx-auto rounded-xl border border-white/20 object-contain shadow-md cursor-pointer hover:scale-[1.02] transition-transform duration-150" title="Click to enlarge diagram" />
+            </div>
+            <button type="button" id="btn-quiz-zoom" class="mt-1 text-[11px] text-amber-300 hover:text-amber-200 font-bold inline-flex items-center gap-1 bg-neutral-800/80 px-2.5 py-1 rounded-full border border-white/10">
+              🔍 Tap / Click to Enlarge Picture
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Multiple Choice Options (A & C top row, B & D bottom row) -->
+        <div id="quiz-options-container" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-4">
+          <!-- Populated by JavaScript -->
+        </div>
+
+        <!-- Oral / No-Choice Question Controls (Shown when question has no options) -->
+        <div id="quiz-oral-container" class="hidden space-y-3 mb-4">
+          <button type="button" id="btn-reveal-oral-answer" class="w-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-2 border-amber-400/50 font-black py-2.5 px-4 rounded-2xl text-sm transition-all flex items-center justify-center gap-2">
+            <span>👁️ Reveal Answer &amp; Picture</span>
+          </button>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <button type="button" id="btn-oral-correct" class="bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white font-black py-3 px-4 rounded-2xl border-b-4 border-emerald-800 text-xs sm:text-sm shadow-lg transition-all">
+              ✅ Answered Correctly (100% Fuel)
+            </button>
+            <button type="button" id="btn-oral-incorrect" class="bg-red-600/90 hover:bg-red-500 active:scale-98 text-white font-black py-3 px-4 rounded-2xl border-b-4 border-red-900 text-xs sm:text-sm shadow-lg transition-all">
+              🔄 Needs Practice (+35% Fuel)
+            </button>
+          </div>
+        </div>
+
+        <!-- Feedback & Explanation Banner -->
+        <div id="quiz-feedback" class="hidden p-3.5 rounded-2xl text-sm font-bold text-center mb-4 transition-all"></div>
+
+        <!-- Continue Button (shown after answering) -->
+        <button id="btn-quiz-continue" class="hidden w-full bg-emerald-500 hover:bg-emerald-400 text-white game-font text-xl py-3 rounded-2xl shadow-lg border-b-4 border-emerald-800 active:translate-y-1 transition-all">
+          RESUME DRIVE 🏎️💨
+        </button>
+      </div>
+    </div>
+
+    <!-- Question Editor Modal (For Teachers / Customizing) -->
+    <div id="editor-modal" class="absolute inset-0 bg-neutral-950/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 z-50 hidden">
+      <div class="glass-panel p-5 sm:p-6 rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border-2 border-white/20">
+        
+        <div class="flex items-center justify-between pb-3 border-b border-white/10">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">📝</span>
+            <h2 class="game-font text-2xl text-yellow-400">Review Question Bank</h2>
+          </div>
+          <button id="btn-close-editor" class="text-neutral-400 hover:text-white p-1 text-2xl font-bold">&times;</button>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-neutral-300 my-2">
+          <span>Manage questions, attach audio/images, and tune truck acceleration.</span>
+          <div class="flex gap-2">
+            <button id="btn-export-json" class="bg-neutral-800 hover:bg-neutral-700 text-sky-300 font-bold px-2.5 py-1 rounded-lg border border-white/10">
+              📥 Export JSON
+            </button>
+            <label class="bg-neutral-800 hover:bg-neutral-700 text-sky-300 font-bold px-2.5 py-1 rounded-lg border border-white/10 cursor-pointer">
+              📤 Import JSON
+              <input type="file" id="import-json-input" accept=".json" class="hidden" />
+            </label>
+          </div>
+        </div>
+
+        <!-- Active Mode & Truck Acceleration Tuner inside Editor -->
+        <div class="bg-neutral-900/80 p-3 rounded-2xl border border-white/15 mb-2 space-y-2">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/10">
+            <label for="editor-mode-select" class="text-xs font-black text-amber-300 shrink-0">📚 Active Question Mode:</label>
+            <select id="editor-mode-select" class="flex-1 bg-neutral-800 border border-white/20 rounded-lg px-2.5 py-1.5 text-xs font-bold text-white focus:outline-none focus:border-amber-400 cursor-pointer">
+              <option value="pictures">1. Landform Pictures (Multiple Choice)</option>
+              <option value="definitions">2. Landform Definitions (No Choices / Oral)</option>
+              <option value="both">3. Both Question Sets Combined</option>
+            </select>
+          </div>
+          <div>
+            <div class="flex justify-between items-center text-xs font-bold text-neutral-200 mb-1">
+              <span>🏎️ Truck Acceleration Multiplier</span>
+              <span id="editor-accel-label" class="text-emerald-400 font-black">1.0x (Standard)</span>
+            </div>
+            <input type="range" id="editor-accel-slider" min="0.5" max="2.2" step="0.1" value="1.0" class="w-full accent-emerald-500 cursor-pointer" />
+          </div>
+          <div class="flex items-center justify-between gap-2 pt-2 border-t border-white/10">
+            <label for="voice-selector" class="text-xs font-bold text-sky-300 shrink-0">🗣️ Reader Voice:</label>
+            <select id="voice-selector" class="flex-1 bg-neutral-800 border border-white/20 rounded-lg px-2 py-1 text-xs text-white focus:outline-none focus:border-sky-400">
+              <option value="">Auto (Best Native Neutral Voice)</option>
+            </select>
+            <button type="button" id="btn-test-voice-select" class="bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg">Test</button>
+          </div>
+        </div>
+
+        <!-- Question List Container -->
+        <div id="editor-questions-list" class="flex-1 overflow-y-auto space-y-3 pr-2 my-2 border border-white/10 rounded-2xl p-2 bg-neutral-900/60 max-h-96">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- Add New Form -->
+        <div class="pt-3 border-t border-white/10 flex flex-wrap gap-2 justify-between items-center">
+          <div class="flex flex-wrap gap-2">
+            <button id="btn-add-question" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-2 px-3.5 rounded-xl transition-all shadow">
+              + Add Question
+            </button>
+            <button id="btn-reset-questions" class="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-bold text-xs py-2 px-3.5 rounded-xl border border-white/10 transition-all">
+              Reset Defaults
+            </button>
+          </div>
+          <button id="btn-save-editor" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2 px-5 rounded-xl shadow transition-all">
+            Done / Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Question Edit / Add Dialog Submodal -->
+    <div id="edit-form-modal" class="absolute inset-0 bg-neutral-950/95 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 z-[60] hidden">
+      <div class="glass-panel p-5 sm:p-6 rounded-3xl max-w-lg w-full max-h-[92vh] flex flex-col shadow-2xl border-2 border-yellow-400/30 overflow-y-auto">
+        <div class="flex items-center justify-between pb-2 border-b border-white/10 mb-3">
+          <h3 id="form-modal-title" class="game-font text-xl text-yellow-400">Add / Edit Question</h3>
+          <button id="btn-cancel-question-form" class="text-neutral-400 hover:text-white text-2xl font-bold">&times;</button>
+        </div>
+
+        <form id="question-form" class="space-y-3 text-xs text-white">
+          <input type="hidden" id="form-edit-index" value="-1" />
+
+          <div>
+            <label class="block font-bold text-neutral-300 mb-1">Subject / Category</label>
+            <input type="text" id="form-category" class="w-full bg-neutral-800 border border-white/20 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-yellow-400" placeholder="e.g. Geography, Landforms, Science" required />
+          </div>
+
+          <div>
+            <label class="block font-bold text-neutral-300 mb-1">Question Format</label>
+            <select id="form-question-type" class="w-full bg-neutral-800 border border-white/20 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-400">
+              <option value="mc">Multiple Choice (4 Options A/B/C/D)</option>
+              <option value="open">No Choices / Oral Fill-in-the-Blank</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block font-bold text-neutral-300 mb-1">Question Prompt</label>
+            <textarea id="form-prompt" rows="2" class="w-full bg-neutral-800 border border-white/20 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-yellow-400" placeholder="Which landform is shown in this picture?" required></textarea>
+          </div>
+
+          <!-- Question Audio Attachment Section -->
+          <div class="bg-neutral-900/90 p-3 rounded-xl border border-sky-400/30 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-sky-300 text-xs">🔊 Auto Voice Read-Aloud &amp; Audio (Reads your text automatically!)</span>
+              <button type="button" id="btn-test-q-audio" class="bg-sky-700 hover:bg-sky-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">▶ Listen Now</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input type="url" id="form-q-audio-url" class="w-full bg-neutral-800 border border-white/20 rounded-lg px-2.5 py-1 text-xs text-white placeholder-neutral-500" placeholder="Audio URL (.mp3, .wav, .ogg)" />
+              <input type="file" id="form-q-audio-file" accept="audio/*" class="w-full text-[11px] text-neutral-300 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:font-semibold file:bg-sky-500 file:text-neutral-950 hover:file:bg-sky-400 cursor-pointer" />
+            </div>
+            <div id="form-q-audio-status" class="hidden flex items-center justify-between text-[10px] text-emerald-400 font-bold">
+              <span>✓ Custom Question Audio Attached</span>
+              <button type="button" id="btn-remove-q-audio" class="text-red-400 underline">Remove</button>
+            </div>
+          </div>
+
+          <!-- Enhanced Picture / Diagram Attachment Section -->
+          <div id="paste-image-zone" tabindex="0" class="bg-neutral-900/90 p-3.5 rounded-xl border-2 border-dashed border-yellow-400/50 hover:border-yellow-400 focus:border-emerald-400 focus:outline-none space-y-2.5 transition-colors">
+            <div class="flex items-center justify-between">
+              <span class="block font-black text-amber-300 text-xs uppercase tracking-wide">🖼️ Question Picture / Diagram</span>
+              <span class="text-[10px] bg-yellow-500/20 text-yellow-200 px-2 py-0.5 rounded font-bold">📋 Press Ctrl+V / Cmd+V to Paste Image!</span>
+            </div>
+
+            <!-- Preset Graphic Selector Buttons -->
+            <div>
+              <label class="block text-[11px] text-neutral-300 font-bold mb-1">⚡ Quick Preset Landform &amp; Educational Graphics:</label>
+              <div class="grid grid-cols-3 sm:grid-cols-6 gap-1.5" id="preset-buttons-container">
+                <button type="button" data-preset="mountain" class="preset-pick-btn bg-neutral-800 hover:bg-neutral-700 active:scale-95 border border-white/15 rounded-lg p-1.5 text-center flex flex-col items-center">
+                  <span class="text-lg">⛰️</span>
+                  <span class="text-[9px] text-neutral-300 font-bold">Mountain</span>
+                </button>
+                <button type="button" data-preset="basin" class="preset-pick-btn bg-neutral-800 hover:bg-neutral-700 active:scale-95 border border-white/15 rounded-lg p-1.5 text-center flex flex-col items-center">
+                  <span class="text-lg">🥣</span>
+                  <span class="text-[9px] text-neutral-300 font-bold">Basin</span>
+                </button>
+                <button type="button" data-preset="mesa" class="preset-pick-btn bg-neutral-800 hover:bg-neutral-700 active:scale-95 border border-white/15 rounded-lg p-1.5 text-center flex flex-col items-center">
+                  <span class="text-lg">🏜️</span>
+                  <span class="text-[9px] text-neutral-300 font-bold">Mesa</span>
+                </button>
+                <button type="button" data-preset="hills" class="preset-pick-btn bg-neutral-800 hover:bg-neutral-700 active:scale-95 border border-white/15 rounded-lg p-1.5 text-center flex flex-col items-center">
+                  <span class="text-lg">🌄</span>
+                  <span class="text-[9px] text-neutral-300 font-bold">Hills</span>
+                </button>
+                <button type="button" data-preset="plain" class="preset-pick-btn bg-neutral-800 hover:bg-neutral-700 active:scale-95 border border-white/15 rounded-lg p-1.5 text-center flex flex-col items-center">
+                  <span class="text-lg">🌾</span>
+                  <span class="text-[9px] text-neutral-300 font-bold">Plain</span>
+                </button>
+                <button type="button" data-preset="earth" class="preset-pick-btn bg-neutral-800 hover:bg-neutral-700 active:scale-95 border border-white/15 rounded-lg p-1.5 text-center flex flex-col items-center">
+                  <span class="text-lg">🌍</span>
+                  <span class="text-[9px] text-neutral-300 font-bold">Layers</span>
+                </button>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-white/10">
+              <div>
+                <label class="block text-[11px] text-neutral-400 mb-1">Option A: Image URL</label>
+                <input type="url" id="form-img-url" class="w-full bg-neutral-800 border border-white/20 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-neutral-500" placeholder="https://example.com/landform.jpg" />
+              </div>
+              <div>
+                <label class="block text-[11px] text-neutral-400 mb-1">Option B: Upload Local File</label>
+                <input type="file" id="form-img-file" accept="image/*" class="w-full text-[11px] text-neutral-300 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-yellow-500 file:text-neutral-900 hover:file:bg-yellow-400 cursor-pointer" />
+              </div>
+            </div>
+
+            <!-- Image Preview Box -->
+            <div id="form-img-preview-container" class="hidden relative mt-2 pt-2 border-t border-white/10 text-center">
+              <span class="text-[10px] text-emerald-400 font-bold block mb-1">✓ Picture Loaded</span>
+              <img id="form-img-preview" src="" alt="Preview" class="max-h-32 mx-auto rounded-lg border border-white/20 object-contain shadow bg-neutral-950 p-1" />
+              <button type="button" id="btn-remove-form-img" class="mt-1 text-[11px] text-red-400 hover:text-red-300 font-bold underline">Remove Picture</button>
+            </div>
+          </div>
+
+          <!-- 4 Options -->
+          <div id="form-mc-options-wrapper" class="space-y-2">
+            <label class="block font-bold text-neutral-300">Answer Options, Audio &amp; Correct Choice</label>
+            
+            <div class="space-y-2">
+              <!-- Option A -->
+              <div class="bg-neutral-900/70 p-2 rounded-xl border border-white/10 space-y-1.5">
+                <div class="flex items-center gap-2">
+                  <input type="radio" name="form-correct-choice" value="0" id="opt-radio-0" class="w-4 h-4 text-emerald-500 accent-emerald-500" checked />
+                  <span class="font-bold text-amber-300 w-4">A:</span>
+                  <input type="text" id="form-opt-0" class="flex-1 bg-neutral-800 border border-white/20 rounded-lg px-2.5 py-1.5 text-sm" placeholder="Option A" required />
+                  <button type="button" class="btn-test-opt-audio bg-neutral-700 hover:bg-neutral-600 text-sky-300 px-2 py-1.5 rounded-lg text-xs" data-opt-idx="0" title="Preview Option A Audio">🔊</button>
+                </div>
+                <div class="flex items-center gap-2 pl-6">
+                  <input type="file" id="form-opt-audio-file-0" accept="audio/*" class="opt-audio-file text-[10px] text-neutral-400 file:mr-1.5 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-neutral-700 file:text-white cursor-pointer" data-opt-idx="0" />
+                  <span id="form-opt-audio-badge-0" class="hidden text-[10px] text-emerald-400 font-bold">✓ Audio <button type="button" class="btn-clear-opt-audio text-red-400 underline ml-1" data-opt-idx="0">×</button></span>
+                </div>
+              </div>
+
+              <!-- Option B -->
+              <div class="bg-neutral-900/70 p-2 rounded-xl border border-white/10 space-y-1.5">
+                <div class="flex items-center gap-2">
+                  <input type="radio" name="form-correct-choice" value="1" id="opt-radio-1" class="w-4 h-4 text-emerald-500 accent-emerald-500" />
+                  <span class="font-bold text-amber-300 w-4">B:</span>
+                  <input type="text" id="form-opt-1" class="flex-1 bg-neutral-800 border border-white/20 rounded-lg px-2.5 py-1.5 text-sm" placeholder="Option B" required />
+                  <button type="button" class="btn-test-opt-audio bg-neutral-700 hover:bg-neutral-600 text-sky-300 px-2 py-1.5 rounded-lg text-xs" data-opt-idx="1" title="Preview Option B Audio">🔊</button>
+                </div>
+                <div class="flex items-center gap-2 pl-6">
+                  <input type="file" id="form-opt-audio-file-1" accept="audio/*" class="opt-audio-file text-[10px] text-neutral-400 file:mr-1.5 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-neutral-700 file:text-white cursor-pointer" data-opt-idx="1" />
+                  <span id="form-opt-audio-badge-1" class="hidden text-[10px] text-emerald-400 font-bold">✓ Audio <button type="button" class="btn-clear-opt-audio text-red-400 underline ml-1" data-opt-idx="1">×</button></span>
+                </div>
+              </div>
+
+              <!-- Option C -->
+              <div class="bg-neutral-900/70 p-2 rounded-xl border border-white/10 space-y-1.5">
+                <div class="flex items-center gap-2">
+                  <input type="radio" name="form-correct-choice" value="2" id="opt-radio-2" class="w-4 h-4 text-emerald-500 accent-emerald-500" />
+                  <span class="font-bold text-amber-300 w-4">C:</span>
+                  <input type="text" id="form-opt-2" class="flex-1 bg-neutral-800 border border-white/20 rounded-lg px-2.5 py-1.5 text-sm" placeholder="Option C" required />
+                  <button type="button" class="btn-test-opt-audio bg-neutral-700 hover:bg-neutral-600 text-sky-300 px-2 py-1.5 rounded-lg text-xs" data-opt-idx="2" title="Preview Option C Audio">🔊</button>
+                </div>
+                <div class="flex items-center gap-2 pl-6">
+                  <input type="file" id="form-opt-audio-file-2" accept="audio/*" class="opt-audio-file text-[10px] text-neutral-400 file:mr-1.5 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-neutral-700 file:text-white cursor-pointer" data-opt-idx="2" />
+                  <span id="form-opt-audio-badge-2" class="hidden text-[10px] text-emerald-400 font-bold">✓ Audio <button type="button" class="btn-clear-opt-audio text-red-400 underline ml-1" data-opt-idx="2">×</button></span>
+                </div>
+              </div>
+
+              <!-- Option D -->
+              <div class="bg-neutral-900/70 p-2 rounded-xl border border-white/10 space-y-1.5">
+                <div class="flex items-center gap-2">
+                  <input type="radio" name="form-correct-choice" value="3" id="opt-radio-3" class="w-4 h-4 text-emerald-500 accent-emerald-500" />
+                  <span class="font-bold text-amber-300 w-4">D:</span>
+                  <input type="text" id="form-opt-3" class="flex-1 bg-neutral-800 border border-white/20 rounded-lg px-2.5 py-1.5 text-sm" placeholder="Option D" required />
+                  <button type="button" class="btn-test-opt-audio bg-neutral-700 hover:bg-neutral-600 text-sky-300 px-2 py-1.5 rounded-lg text-xs" data-opt-idx="3" title="Preview Option D Audio">🔊</button>
+                </div>
+                <div class="flex items-center gap-2 pl-6">
+                  <input type="file" id="form-opt-audio-file-3" accept="audio/*" class="opt-audio-file text-[10px] text-neutral-400 file:mr-1.5 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-neutral-700 file:text-white cursor-pointer" data-opt-idx="3" />
+                  <span id="form-opt-audio-badge-3" class="hidden text-[10px] text-emerald-400 font-bold">✓ Audio <button type="button" class="btn-clear-opt-audio text-red-400 underline ml-1" data-opt-idx="3">×</button></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Complete Answer Sentence / Hint -->
+          <div>
+            <label class="block font-bold text-neutral-300 mb-1">Complete Answer Sentence / Hint</label>
+            <input type="text" id="form-explanation" class="w-full bg-neutral-800 border border-white/20 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-yellow-400" placeholder="e.g. A mountain is very high." />
+          </div>
+
+          <div class="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+            <button type="button" id="btn-delete-in-form" class="hidden bg-red-600/90 hover:bg-red-500 text-white font-bold px-3.5 py-2 rounded-xl shadow transition-all">
+              🗑️ Delete Question
+            </button>
+            <div class="flex gap-2 ml-auto">
+              <button type="button" id="btn-close-form-modal" class="bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-bold px-4 py-2 rounded-xl border border-white/10">Cancel</button>
+              <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2 rounded-xl shadow">Save Question</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Image Zoom Lightbox Modal -->
+    <div id="image-lightbox" class="absolute inset-0 bg-neutral-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4 z-[70] hidden cursor-pointer">
+      <img id="lightbox-img" src="" alt="Zoomed view" class="max-w-[90vw] max-h-[85vh] rounded-2xl object-contain shadow-2xl border-2 border-white/20" />
+      <span class="text-xs text-neutral-300 mt-3 font-semibold">Tap anywhere to close zoom</span>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameover-modal" class="absolute inset-0 bg-neutral-950/85 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+      <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-md w-full text-center shadow-2xl border-2 border-red-500/60">
+        <div class="text-5xl mb-2" id="gameover-icon">💥</div>
+        <h2 id="gameover-title" class="game-font text-3xl sm:text-4xl text-red-500 mb-1">OUT OF FUEL!</h2>
+        <p id="gameover-msg" class="text-sm text-neutral-300 font-medium mb-5">Your engine spluttered to a halt on the steep mountain.</p>
+
+        <!-- Stats Box -->
+        <div class="bg-neutral-900/80 rounded-2xl p-4 border border-white/10 grid grid-cols-2 gap-3 mb-6 text-left">
+          <div class="bg-neutral-800/60 p-2.5 rounded-xl">
+            <div class="text-[10px] text-neutral-400 uppercase font-black">Distance</div>
+            <div id="go-stat-distance" class="game-font text-xl text-yellow-400">0 m</div>
+          </div>
+          <div class="bg-neutral-800/60 p-2.5 rounded-xl">
+            <div class="text-[10px] text-neutral-400 uppercase font-black">Milk Collected</div>
+            <div id="go-stat-milk" class="game-font text-xl text-sky-400">0</div>
+          </div>
+          <div class="bg-neutral-800/60 p-2.5 rounded-xl">
+            <div class="text-[10px] text-neutral-400 uppercase font-black">Questions Right</div>
+            <div id="go-stat-quiz" class="game-font text-xl text-emerald-400">0</div>
+          </div>
+          <div class="bg-neutral-800/60 p-2.5 rounded-xl">
+            <div class="text-[10px] text-neutral-400 uppercase font-black">Total Score</div>
+            <div id="go-stat-score" class="game-font text-xl text-amber-300">0</div>
+          </div>
+        </div>
+
+        <button id="btn-restart" class="w-full bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-neutral-950 game-font text-2xl py-3 rounded-2xl shadow-xl border-b-4 border-amber-700 active:translate-y-1 transition-all">
+          TRY AGAIN 🔄
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* =====================================================================
+       AUDIO SYNTHESIZER (Web Audio API - No external files needed)
+       ===================================================================== */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+        this.engineOsc = null;
+        this.engineGain = null;
+        this.currentClip = null;
+      }
+
+      init() {
+        try {
+          if (!this.ctx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+              this.ctx = new AudioContext();
+              this.setupEngineSound();
+            }
+          }
+          if (this.ctx && this.ctx.state === 'suspended') {
+            this.ctx.resume();
+          }
+        } catch (e) {
+          console.warn("Audio init skipped:", e);
+        }
+      }
+
+      setupEngineSound() {
+        try {
+          this.engineOsc = this.ctx.createOscillator();
+          this.engineGain = this.ctx.createGain();
+          
+          this.engineOsc.type = 'sawtooth';
+          this.engineOsc.frequency.setValueAtTime(45, this.ctx.currentTime);
+          
+          this.filter = this.ctx.createBiquadFilter();
+          this.filter.type = 'lowpass';
+          this.filter.frequency.setValueAtTime(260, this.ctx.currentTime);
+
+          this.engineGain.gain.setValueAtTime(0, this.ctx.currentTime);
+
+          this.engineOsc.connect(this.filter);
+          this.filter.connect(this.engineGain);
+          this.engineGain.connect(this.ctx.destination);
+          this.engineOsc.start();
+        } catch (e) {
+          console.warn("Engine sound setup issue:", e);
+        }
+      }
+
+      updateEngine(rpm, isThrottling) {
+        if (!this.enabled || !this.ctx || !this.engineOsc) return;
+        const now = this.ctx.currentTime;
+        const targetFreq = 40 + Math.min(180, rpm * 80 + (isThrottling ? 45 : 0));
+        const targetGain = isThrottling ? 0.12 : 0;
+        
+        this.engineOsc.frequency.setTargetAtTime(targetFreq, now, 0.08);
+        this.engineGain.gain.setTargetAtTime(targetGain, now, 0.05);
+      }
+
+      stopEngine() {
+        if (this.engineGain && this.ctx) {
+          this.engineGain.gain.cancelScheduledValues(this.ctx.currentTime);
+          this.engineGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.01);
+          this.engineGain.gain.setValueAtTime(0, this.ctx.currentTime);
+        }
+      }
+
+      playMilkSound() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, now);
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      }
+
+      playFuelChime() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+          gain.gain.setValueAtTime(0.18, now + idx * 0.07);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.25);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + idx * 0.07);
+          osc.stop(now + idx * 0.07 + 0.25);
+        });
+      }
+
+      playCorrectFanfare() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const notes = [440, 554.37, 659.25, 880];
+        notes.forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + i * 0.08);
+          gain.gain.setValueAtTime(0.25, now + i * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.35);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.08);
+          osc.stop(now + i * 0.08 + 0.35);
+        });
+      }
+
+      playBuzzer() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.setValueAtTime(110, now + 0.15);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.35);
+      }
+
+      playCrash() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const bufferSize = this.ctx.sampleRate * 0.4;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(800, now);
+        filter.frequency.exponentialRampToValueAtTime(50, now + 0.4);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start(now);
+      }
+
+      playQuizClip(audioSrc, fallbackText) {
+        if (this.currentClip) {
+          this.currentClip.pause();
+          this.currentClip = null;
+        }
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+
+        if (audioSrc && audioSrc.trim() !== '') {
+          try {
+            this.currentClip = new Audio(audioSrc);
+            this.currentClip.play().catch(() => {
+              this.speakText(fallbackText);
+            });
+            return;
+          } catch (e) {
+            // Fall back to TTS
+          }
+        }
+        if (fallbackText) {
+          this.speakText(fallbackText);
+        }
+      }
+
+      speakText(text) {
+        if ('speechSynthesis' in window && text) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          const selectedVoice = getPreferredNativeVoice();
+          if (selectedVoice) {
+            utterance.voice = selectedVoice;
+            utterance.lang = selectedVoice.lang;
+          } else {
+            utterance.lang = 'en-US';
+          }
+          utterance.rate = 0.96;
+          utterance.pitch = 1.0;
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+
+      stopQuizAudio() {
+        if (this.currentClip) {
+          this.currentClip.pause();
+          this.currentClip = null;
+        }
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+        }
+      }
+    }
+
+    const sounds = new SoundEngine();
+
+    /* =====================================================================
+       TRUCK ACCELERATION & AUTO-READ SETTINGS PERSISTENCE
+       ===================================================================== */
+    let truckAccelerationMultiplier = parseFloat(localStorage.getItem('edu_climber_accel')) || 1.0;
+    let autoReadAloudEnabled = localStorage.getItem('edu_climber_autoread') !== 'false';
+    let preferredVoiceURI = localStorage.getItem('edu_climber_voice_uri') || '';
+
+    function getPreferredNativeVoice() {
+      if (!('speechSynthesis' in window)) return null;
+      const voices = window.speechSynthesis.getVoices();
+      if (!voices || voices.length === 0) return null;
+
+      if (preferredVoiceURI) {
+        const chosen = voices.find(v => v.voiceURI === preferredVoiceURI);
+        if (chosen) return chosen;
+      }
+
+      const englishVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+      const pool = englishVoices.length > 0 ? englishVoices : voices;
+
+      const scoreVoice = (v) => {
+        const name = v.name.toLowerCase();
+        const lang = v.lang.toLowerCase();
+        let score = 0;
+        if (lang === 'en-us' || lang === 'en-gb') score += 30;
+        if (name.includes('natural')) score += 45;
+        if (name.includes('google us english') || name.includes('google uk english')) score += 40;
+        if (name.includes('aria') || name.includes('guy') || name.includes('jenny') || name.includes('samantha') || name.includes('daniel') || name.includes('alex') || name.includes('ava') || name.includes('allison')) score += 35;
+        if (name.includes('premium') || name.includes('enhanced')) score += 25;
+        if (!v.localService) score += 10;
+        return score;
+      };
+
+      return [...pool].sort((a, b) => scoreVoice(b) - scoreVoice(a))[0] || null;
+    }
+
+    function populateVoiceSelector() {
+      const selector = document.getElementById('voice-selector');
+      if (!selector || !('speechSynthesis' in window)) return;
+      const voices = window.speechSynthesis.getVoices();
+      const englishVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+      const list = englishVoices.length > 0 ? englishVoices : voices;
+
+      selector.innerHTML = '<option value="">Auto (Best Native Neutral Voice)</option>';
+      list.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.voiceURI;
+        opt.textContent = `${v.name} (${v.lang})`;
+        if (v.voiceURI === preferredVoiceURI) opt.selected = true;
+        selector.appendChild(opt);
+      });
+    }
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = populateVoiceSelector;
+    }
+
+    function setTruckAcceleration(val) {
+      truckAccelerationMultiplier = Math.max(0.5, Math.min(2.2, parseFloat(val) || 1.0));
+      localStorage.setItem('edu_climber_accel', truckAccelerationMultiplier.toString());
+      const desc = truckAccelerationMultiplier < 0.8 ? 'Gentle' :
+                   truckAccelerationMultiplier <= 1.2 ? 'Standard' :
+                   truckAccelerationMultiplier <= 1.7 ? 'Sport' : 'Turbo';
+      const labelText = `${truckAccelerationMultiplier.toFixed(1)}x (${desc})`;
+
+      const startSlider = document.getElementById('start-accel-slider');
+      const editorSlider = document.getElementById('editor-accel-slider');
+      const startLabel = document.getElementById('start-accel-label');
+      const editorLabel = document.getElementById('editor-accel-label');
+
+      if (startSlider) startSlider.value = truckAccelerationMultiplier;
+      if (editorSlider) editorSlider.value = truckAccelerationMultiplier;
+      if (startLabel) startLabel.textContent = labelText;
+      if (editorLabel) editorLabel.textContent = labelText;
+    }
+
+    /* =====================================================================
+       LANDFORM PICTURES & EDUCATIONAL GRAPHICS
+       ===================================================================== */
+    const PRESET_GRAPHICS = {
+      mountain: "https://daniellacnunez-collab.github.io/landforms/%E6%8A%95%E5%BD%B1%E7%89%871.JPG",
+      basin: "https://daniellacnunez-collab.github.io/landforms/%E6%8A%95%E5%BD%B1%E7%89%872.JPG",
+      mesa: "https://daniellacnunez-collab.github.io/landforms/%E6%8A%95%E5%BD%B1%E7%89%873.JPG",
+      hills: "https://daniellacnunez-collab.github.io/landforms/%E6%8A%95%E5%BD%B1%E7%89%874.JPG",
+      plain: "https://daniellacnunez-collab.github.io/landforms/%E6%8A%95%E5%BD%B1%E7%89%875.JPG",
+      earth: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" width="320" height="220"><rect width="320" height="220" fill="%23172554" rx="12"/><circle cx="160" cy="110" r="85" fill="%231e3a8a" stroke="%2322c55e" stroke-width="5"/><path d="M160,110 L245,110 A85,85 0 0,0 160,25 Z" fill="%23b45309"/><circle cx="160" cy="110" r="60" fill="%23d97706"/><circle cx="160" cy="110" r="38" fill="%23f59e0b"/><circle cx="160" cy="110" r="18" fill="%23fef08a"/><line x1="160" y1="110" x2="270" y2="60" stroke="%23f43f5e" stroke-width="3"/><polygon points="163,108 174,103 170,115" fill="%23f43f5e"/><text x="275" y="63" font-family="sans-serif" font-size="11" font-weight="bold" fill="%23fef08a">Center (?)</text><text x="160" y="210" font-family="sans-serif" font-size="12" font-weight="bold" fill="%2393c5fd" text-anchor="middle">EARTH CROSS-SECTION: INNER CORE</text></svg>`
+    };
+
+    /* SET 1: LANDFORM PICTURES (MULTIPLE CHOICE) */
+    const DEFAULT_QUESTIONS = [
+      {
+        type: 'mc',
+        set: 'pictures',
+        question: "Which landform is shown in this picture—a tall, steep elevation of Earth's surface rising sharply to a peak above the surrounding land?",
+        category: "Landforms (Pictures)",
+        image: PRESET_GRAPHICS.mountain,
+        options: ["Mountain", "Basin", "Plain", "Mesa"],
+        correctIndex: 0,
+        explanation: "A mountain is a large, steep landform that rises high above the surrounding land, usually forming a peak or ridge."
+      },
+      {
+        type: 'mc',
+        set: 'pictures',
+        question: "Which landform is shown in this picture—a bowl-shaped depression in the Earth's surface surrounded by higher land?",
+        category: "Landforms (Pictures)",
+        image: PRESET_GRAPHICS.basin,
+        options: ["Basin", "Mountain", "Mesa", "Hills"],
+        correctIndex: 0,
+        explanation: "A basin is a low, bowl-shaped area of land surrounded by higher mountains or hills."
+      },
+      {
+        type: 'mc',
+        set: 'pictures',
+        question: "Which landform is shown in this picture—an elevated, flat-topped hill or tableland with steep sides?",
+        category: "Landforms (Pictures)",
+        image: PRESET_GRAPHICS.mesa,
+        options: ["Mesa", "Hills", "Basin", "Plain"],
+        correctIndex: 0,
+        explanation: "A mesa (Spanish for 'table') is an isolated, flat-topped elevation with steep cliffs on its sides."
+      },
+      {
+        type: 'mc',
+        set: 'pictures',
+        question: "Which landform is shown in this picture—naturally raised areas of land that are lower and more rounded than mountains?",
+        category: "Landforms (Pictures)",
+        image: PRESET_GRAPHICS.hills,
+        options: ["Hills", "Mountain", "Plain", "Mesa"],
+        correctIndex: 0,
+        explanation: "Hills are raised landforms with gentle, rounded slopes that are not as tall or steep as mountains."
+      },
+      {
+        type: 'mc',
+        set: 'pictures',
+        question: "Which landform is shown in this picture—a large, wide area of flat or gently rolling land?",
+        category: "Landforms (Pictures)",
+        image: PRESET_GRAPHICS.plain,
+        options: ["Plain", "Mesa", "Mountain", "Basin"],
+        correctIndex: 0,
+        explanation: "A plain is a broad, flat expanse of land with very little change in elevation."
+      }
+    ];
+
+    /* SET 2: LANDFORM DEFINITIONS (NO CHOICES / ORAL FILL-IN-THE-BLANK) */
+    const DEFINITION_QUESTIONS = [
+      {
+        type: 'open',
+        set: 'definitions',
+        question: "Which landform is very high? ________ is very high.",
+        category: "Landform Definitions (No Choices)",
+        image: PRESET_GRAPHICS.mountain,
+        options: [],
+        correctIndex: 0,
+        explanation: "Mountain is very high."
+      },
+      {
+        type: 'open',
+        set: 'definitions',
+        question: "Which landform is flat? _______ is flat.",
+        category: "Landform Definitions (No Choices)",
+        image: PRESET_GRAPHICS.plain,
+        options: [],
+        correctIndex: 0,
+        explanation: "Plain is flat."
+      },
+      {
+        type: 'open',
+        set: 'definitions',
+        question: "Which landform gently goes up and down? _______ Hills gently go up and down.",
+        category: "Landform Definitions (No Choices)",
+        image: PRESET_GRAPHICS.hills,
+        options: [],
+        correctIndex: 0,
+        explanation: "Hills gently go up and down."
+      },
+      {
+        type: 'open',
+        set: 'definitions',
+        question: "Which landform is like a bowl? ________ Basin is like a bowl.",
+        category: "Landform Definitions (No Choices)",
+        image: PRESET_GRAPHICS.basin,
+        options: [],
+        correctIndex: 0,
+        explanation: "Basin is like a bowl."
+      },
+      {
+        type: 'open',
+        set: 'definitions',
+        question: "Which landform is high but flat on top? ____ is high but flat on top.",
+        category: "Landform Definitions (No Choices)",
+        image: PRESET_GRAPHICS.mesa,
+        options: [],
+        correctIndex: 0,
+        explanation: "Mesa is high but flat on top."
+      }
+    ];
+
+    const ALL_DEFAULT_QUESTIONS = [...DEFAULT_QUESTIONS, ...DEFINITION_QUESTIONS];
+    const STORAGE_KEY_QUESTIONS = 'edu_climber_questions_landforms_v2';
+    const STORAGE_KEY_MODE = 'edu_climber_question_mode';
+    let currentQuestionMode = localStorage.getItem(STORAGE_KEY_MODE) || 'pictures';
+    let questionBank = [];
+
+    function loadQuestions() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY_QUESTIONS);
+        if (stored) {
+          questionBank = JSON.parse(stored);
+          if (!Array.isArray(questionBank) || questionBank.length === 0) {
+            questionBank = JSON.parse(JSON.stringify(ALL_DEFAULT_QUESTIONS));
+          }
+        } else {
+          questionBank = JSON.parse(JSON.stringify(ALL_DEFAULT_QUESTIONS));
+        }
+      } catch (e) {
+        questionBank = JSON.parse(JSON.stringify(ALL_DEFAULT_QUESTIONS));
+      }
+    }
+
+    function saveQuestions() {
+      try {
+        localStorage.setItem(STORAGE_KEY_QUESTIONS, JSON.stringify(questionBank));
+      } catch (e) {
+        console.error("Storage error:", e);
+      }
+    }
+
+    function getActiveQuestionPool() {
+      if (currentQuestionMode === 'definitions') {
+        const filtered = questionBank.filter(q => q.type === 'open' || q.set === 'definitions');
+        return filtered.length > 0 ? filtered : DEFINITION_QUESTIONS;
+      }
+      if (currentQuestionMode === 'pictures') {
+        const filtered = questionBank.filter(q => q.type !== 'open' && q.set !== 'definitions');
+        return filtered.length > 0 ? filtered : DEFAULT_QUESTIONS;
+      }
+      return questionBank.length > 0 ? questionBank : ALL_DEFAULT_QUESTIONS;
+    }
+
+    function setQuestionMode(mode) {
+      currentQuestionMode = mode;
+      localStorage.setItem(STORAGE_KEY_MODE, mode);
+      const startSel = document.getElementById('start-mode-select');
+      const editorSel = document.getElementById('editor-mode-select');
+      if (startSel) startSel.value = mode;
+      if (editorSel) editorSel.value = mode;
+    }
+
+    loadQuestions();
+
+    /* =====================================================================
+       2D PROCEDURAL TERRAIN GENERATION
+       ===================================================================== */
+    class Terrain {
+      constructor() {
+        this.points = [];
+        this.step = 25;
+        this.generatedX = 0;
+        this.reset();
+      }
+
+      reset() {
+        this.points = [];
+        this.generatedX = -800;
+        this.generateChunk(3500);
+      }
+
+      getHeight(x) {
+        const base = 420;
+        const wave1 = Math.sin(x * 0.002) * 110;
+        const wave2 = Math.sin(x * 0.0065 + 1.2) * 55;
+        const wave3 = Math.sin(x * 0.016) * 22;
+        const difficulty = Math.min(1.4, 1.0 + Math.max(0, x * 0.00004));
+        const steepHills = Math.sin(x * 0.001) > 0.4 ? Math.sin(x * 0.004) * 80 : 0;
+        
+        return base + (wave1 + wave2 + wave3 + steepHills) * difficulty;
+      }
+
+      getSlope(x) {
+        const delta = 2.0;
+        const y1 = this.getHeight(x - delta);
+        const y2 = this.getHeight(x + delta);
+        return Math.atan2(y2 - y1, delta * 2);
+      }
+
+      generateChunk(upToX) {
+        while (this.generatedX < upToX) {
+          const x = this.generatedX;
+          const y = this.getHeight(x);
+          this.points.push({ x, y });
+          this.generatedX += this.step;
+        }
+      }
+
+      draw(ctx, cameraX, canvasWidth, canvasHeight) {
+        if (cameraX + canvasWidth + 1200 > this.generatedX) {
+          this.generateChunk(cameraX + canvasWidth + 2500);
+        }
+
+        const startIdx = Math.max(0, Math.floor((cameraX - 400 - this.points[0].x) / this.step));
+        const endIdx = Math.min(this.points.length - 1, Math.ceil((cameraX + canvasWidth + 400 - this.points[0].x) / this.step));
+
+        if (startIdx >= endIdx) return;
+
+        // 1. Draw Dirt Fill
+        ctx.beginPath();
+        ctx.moveTo(this.points[startIdx].x, this.points[startIdx].y);
+        for (let i = startIdx + 1; i <= endIdx; i++) {
+          ctx.lineTo(this.points[i].x, this.points[i].y);
+        }
+        ctx.lineTo(this.points[endIdx].x, canvasHeight + 1000);
+        ctx.lineTo(this.points[startIdx].x, canvasHeight + 1000);
+        ctx.closePath();
+
+        const dirtGrad = ctx.createLinearGradient(0, 300, 0, canvasHeight + 600);
+        dirtGrad.addColorStop(0, '#784c25');
+        dirtGrad.addColorStop(0.3, '#5c3719');
+        dirtGrad.addColorStop(1, '#331e0c');
+        ctx.fillStyle = dirtGrad;
+        ctx.fill();
+
+        // 2. Draw Lush Grass Border
+        ctx.beginPath();
+        ctx.moveTo(this.points[startIdx].x, this.points[startIdx].y);
+        for (let i = startIdx + 1; i <= endIdx; i++) {
+          ctx.lineTo(this.points[i].x, this.points[i].y);
+        }
+        ctx.lineWidth = 14;
+        ctx.strokeStyle = '#43a047';
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = '#7cb342';
+        ctx.stroke();
+      }
+    }
+
+    /* =====================================================================
+       2D CAR & DRIVER PHYSICS (Hill Climber Model)
+       ===================================================================== */
+    class ClimberCar {
+      constructor() {
+        this.reset();
+      }
+
+      reset() {
+        this.x = 80;
+        this.y = 200;
+        this.vx = 0;
+        this.vy = 0;
+        this.angle = 0;
+        this.angularVel = 0;
+
+        this.wheelBase = 72;
+        this.chassisWidth = 92;
+        this.chassisHeight = 44;
+        this.wheelRadius = 19;
+
+        this.rearWheel = { x: -36, y: 18, rot: 0, grounded: false };
+        this.frontWheel = { x: 36, y: 18, rot: 0, grounded: false };
+
+        this.headAngle = 0;
+        this.headTargetAngle = 0;
+
+        this.fuel = 100;
+        this.isGrounded = false;
+        this.isFlipped = false;
+        this.airTime = 0;
+      }
+
+      update(dt, controls, terrain) {
+        if (controls.gas || controls.brake) {
+          this.fuel -= dt * 3.4;
+        } else {
+          this.fuel -= dt * 1.0;
+        }
+        if (this.fuel < 0) this.fuel = 0;
+
+        const hasFuel = this.fuel > 0;
+        const gravity = 800;
+        this.vy += gravity * dt;
+
+        const driveForce = 2100 * truckAccelerationMultiplier;
+        const airTorque = 5.2;
+
+        let throttle = 0;
+        if (hasFuel) {
+          if (controls.gas) throttle += 1;
+          if (controls.brake) throttle -= 0.85;
+        }
+
+        if (!this.isGrounded) {
+          if (controls.gas) this.angularVel += airTorque * dt;
+          if (controls.brake) this.angularVel -= airTorque * dt;
+          this.airTime += dt;
+        } else {
+          this.airTime = 0;
+        }
+
+        const cosA = Math.cos(this.angle);
+        const sinA = Math.sin(this.angle);
+
+        const getWheelWorld = (wLocal) => ({
+          x: this.x + (wLocal.x * cosA - wLocal.y * sinA),
+          y: this.y + (wLocal.x * sinA + wLocal.y * cosA)
+        });
+
+        let rwPos = getWheelWorld(this.rearWheel);
+        let fwPos = getWheelWorld(this.frontWheel);
+
+        const rwGroundY = terrain.getHeight(rwPos.x);
+        const fwGroundY = terrain.getHeight(fwPos.x);
+
+        const rwDepth = (rwPos.y + this.wheelRadius) - rwGroundY;
+        const fwDepth = (fwPos.y + this.wheelRadius) - fwGroundY;
+
+        this.rearWheel.grounded = rwDepth > 0;
+        this.frontWheel.grounded = fwDepth > 0;
+        this.isGrounded = this.rearWheel.grounded || this.frontWheel.grounded;
+
+        const kSpring = 28.0;
+
+        if (this.rearWheel.grounded) {
+          const slope = terrain.getSlope(rwPos.x);
+          const normalX = -Math.sin(slope);
+          const normalY = Math.cos(slope);
+
+          const springF = Math.max(0, rwDepth) * kSpring;
+          this.vy -= normalY * springF * dt * 30;
+          this.vx -= normalX * springF * dt * 30;
+
+          if (throttle !== 0) {
+            const slopeAssist = throttle > 0 && Math.sin(slope) < 0 ? 1.35 : 1.0;
+            const driveX = Math.cos(slope) * throttle * driveForce * slopeAssist * dt;
+            const driveY = Math.sin(slope) * throttle * driveForce * slopeAssist * dt;
+            this.vx += driveX;
+            this.vy += driveY;
+            this.rearWheel.rot += (throttle * 22 * dt);
+          }
+          this.angularVel += (rwDepth * 0.08);
+        }
+
+        if (this.frontWheel.grounded) {
+          const slope = terrain.getSlope(fwPos.x);
+          const normalX = -Math.sin(slope);
+          const normalY = Math.cos(slope);
+
+          const springF = Math.max(0, fwDepth) * kSpring;
+          this.vy -= normalY * springF * dt * 30;
+          this.vx -= normalX * springF * dt * 30;
+
+          if (throttle > 0) {
+            const slopeAssist = Math.sin(slope) < 0 ? 1.3 : 1.0;
+            this.vx += Math.cos(slope) * throttle * driveForce * 0.95 * slopeAssist * dt;
+            this.vy += Math.sin(slope) * throttle * driveForce * 0.95 * slopeAssist * dt;
+            this.frontWheel.rot += (throttle * 22 * dt);
+          } else if (throttle < 0) {
+            this.vx += Math.cos(slope) * throttle * driveForce * 0.7 * dt;
+            this.vy += Math.sin(slope) * throttle * driveForce * 0.7 * dt;
+            this.frontWheel.rot += (throttle * 22 * dt);
+          }
+          this.angularVel -= (fwDepth * 0.08);
+        }
+
+        if (this.isGrounded && throttle > 0) {
+          if (this.vx < 0) {
+            this.vx *= 0.88;
+          }
+        }
+
+        if (this.rearWheel.grounded && this.frontWheel.grounded) {
+          const groundAngle = Math.atan2(fwGroundY - rwGroundY, fwPos.x - rwPos.x);
+          let angleDiff = groundAngle - this.angle;
+          while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+          while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+          this.angularVel += angleDiff * 14 * dt;
+          this.angularVel *= 0.85;
+        }
+
+        this.angularVel *= 0.94;
+        this.angle += this.angularVel * dt;
+
+        this.vx *= 0.994;
+        this.vy *= 0.994;
+
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+
+        const currentSpeed = Math.hypot(this.vx, this.vy);
+        const forwardDirection = Math.sign(this.vx * cosA + this.vy * sinA) || 1;
+        this.rearWheel.rot += (forwardDirection * currentSpeed * dt) / this.wheelRadius;
+        this.frontWheel.rot += (forwardDirection * currentSpeed * dt) / this.wheelRadius;
+
+        const headLocalX = -8;
+        const headLocalY = -28;
+        const headWorldX = this.x + (headLocalX * cosA - headLocalY * sinA);
+        const headWorldY = this.y + (headLocalX * sinA + headLocalY * cosA);
+        const groundAtHead = terrain.getHeight(headWorldX);
+
+        let normAngle = this.angle % (Math.PI * 2);
+        if (normAngle < 0) normAngle += Math.PI * 2;
+        const isUpsideDown = normAngle > Math.PI * 0.55 && normAngle < Math.PI * 1.45;
+
+        if ((headWorldY + 12 > groundAtHead && (this.rearWheel.grounded || this.frontWheel.grounded)) || (isUpsideDown && (rwDepth > 10 || fwDepth > 10))) {
+          this.isFlipped = true;
+        }
+
+        const accelX = this.vx * 0.015;
+        this.headTargetAngle = -accelX * 0.4 - this.angularVel * 0.2;
+        this.headAngle += (this.headTargetAngle - this.headAngle) * 0.2;
+      }
+
+      draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+
+        // 1. Suspension Arms / Axles
+        ctx.strokeStyle = '#212121';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(-10, 4);
+        ctx.lineTo(this.rearWheel.x, this.rearWheel.y);
+        ctx.moveTo(15, 4);
+        ctx.lineTo(this.frontWheel.x, this.frontWheel.y);
+        ctx.stroke();
+
+        // 2. Driver Bill Newton
+        ctx.save();
+        ctx.translate(-8, -12);
+
+        ctx.fillStyle = '#b71c1c';
+        ctx.beginPath();
+        ctx.roundRect(-10, 2, 22, 22, 4);
+        ctx.fill();
+
+        ctx.strokeStyle = '#ffcc80';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(2, 8);
+        ctx.lineTo(18, 5);
+        ctx.stroke();
+
+        ctx.save();
+        ctx.rotate(this.headAngle);
+
+        ctx.fillStyle = '#f5cba7';
+        ctx.fillRect(-3, -2, 6, 6);
+
+        ctx.beginPath();
+        ctx.arc(0, -12, 11, 0, Math.PI * 2);
+        ctx.fillStyle = '#f5cba7';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.ellipse(8, -10, 5, 3.5, 0.2, 0, Math.PI * 2);
+        ctx.fillStyle = '#e59866';
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(4, -14, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#111827';
+        ctx.beginPath();
+        ctx.arc(5, -14, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#4a2810';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(1, -18);
+        ctx.lineTo(7, -17);
+        ctx.stroke();
+
+        ctx.fillStyle = '#9e7552';
+        ctx.fillRect(-2, -6, 8, 3);
+
+        ctx.fillStyle = '#c62828';
+        ctx.beginPath();
+        ctx.arc(0, -14, 12, Math.PI, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#8e0000';
+        ctx.beginPath();
+        ctx.roundRect(4, -14, 14, 4, 2);
+        ctx.fill();
+
+        ctx.restore();
+        ctx.restore();
+
+        // 3. Red 4x4 Jeep Chassis
+        ctx.save();
+        ctx.strokeStyle = '#212121';
+        ctx.lineWidth = 4.5;
+        ctx.beginPath();
+        ctx.moveTo(-32, -4);
+        ctx.lineTo(-24, -28);
+        ctx.lineTo(-4, -28);
+        ctx.lineTo(-2, -2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(-42, 6);
+        ctx.lineTo(-34, -4);
+        ctx.stroke();
+
+        const bodyGrad = ctx.createLinearGradient(0, -20, 0, 20);
+        bodyGrad.addColorStop(0, '#ef5350');
+        bodyGrad.addColorStop(0.6, '#d32f2f');
+        bodyGrad.addColorStop(1, '#b71c1c');
+        ctx.fillStyle = bodyGrad;
+        ctx.strokeStyle = '#7f0000';
+        ctx.lineWidth = 2.5;
+
+        ctx.beginPath();
+        ctx.moveTo(-44, 14);
+        ctx.lineTo(-44, -2);
+        ctx.lineTo(-24, -6);
+        ctx.lineTo(-12, 4);
+        ctx.lineTo(12, 4);
+        ctx.lineTo(24, -8);
+        ctx.lineTo(46, -8);
+        ctx.lineTo(50, 14);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#212121';
+        ctx.beginPath();
+        ctx.arc(-36, 15, 23, Math.PI, 0, true);
+        ctx.arc(36, 15, 23, Math.PI, 0, true);
+        ctx.fill();
+
+        ctx.fillStyle = 'rgba(179, 229, 252, 0.75)';
+        ctx.strokeStyle = '#263238';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(14, 4);
+        ctx.lineTo(26, -18);
+        ctx.lineTo(32, -18);
+        ctx.lineTo(26, 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.strokeStyle = '#37474f';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(15, -4);
+        ctx.lineTo(10, 8);
+        ctx.stroke();
+
+        ctx.fillStyle = '#fff59d';
+        ctx.strokeStyle = '#fbc02d';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(49, 1, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.restore();
+
+        // 4. Rugged Off-road Wheels
+        this.drawWheel(ctx, this.rearWheel.x, this.rearWheel.y, this.rearWheel.rot);
+        this.drawWheel(ctx, this.frontWheel.x, this.frontWheel.y, this.frontWheel.rot);
+
+        ctx.restore();
+      }
+
+      drawWheel(ctx, wx, wy, rot) {
+        ctx.save();
+        ctx.translate(wx, wy);
+        ctx.rotate(rot);
+
+        ctx.beginPath();
+        ctx.arc(0, 0, this.wheelRadius, 0, Math.PI * 2);
+        ctx.fillStyle = '#263238';
+        ctx.fill();
+        ctx.strokeStyle = '#182024';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        const spokes = 8;
+        ctx.strokeStyle = '#37474f';
+        ctx.lineWidth = 3;
+        for (let i = 0; i < spokes; i++) {
+          const a = (i * Math.PI * 2) / spokes;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * (this.wheelRadius - 5), Math.sin(a) * (this.wheelRadius - 5));
+          ctx.lineTo(Math.cos(a) * this.wheelRadius, Math.sin(a) * this.wheelRadius);
+          ctx.stroke();
+        }
+
+        ctx.beginPath();
+        ctx.arc(0, 0, 11, 0, Math.PI * 2);
+        ctx.fillStyle = '#b0bec5';
+        ctx.fill();
+
+        ctx.fillStyle = '#4fc3f7';
+        ctx.fillRect(-9, -2.5, 18, 5);
+        ctx.fillRect(-2.5, -9, 5, 18);
+
+        ctx.beginPath();
+        ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#263238';
+        ctx.fill();
+
+        ctx.restore();
+      }
+    }
+
+    /* =====================================================================
+       COLLECTIBLES SYSTEM (Milk Bottles & Fuel Jerrycans)
+       ===================================================================== */
+    class CollectibleManager {
+      constructor() {
+        this.items = [];
+        this.nextMilestone = 250;
+        this.lastGeneratedX = 150;
+      }
+
+      reset() {
+        this.items = [];
+        this.nextMilestone = 280;
+        this.lastGeneratedX = 150;
+      }
+
+      updateAndSpawn(carX, terrain) {
+        while (this.lastGeneratedX < carX + 1600) {
+          this.lastGeneratedX += 50 + Math.random() * 70;
+
+          if (this.lastGeneratedX >= this.nextMilestone) {
+            const y = terrain.getHeight(this.lastGeneratedX) - 28;
+            this.items.push({
+              type: 'fuel',
+              x: this.lastGeneratedX,
+              y: y,
+              collected: false,
+              bobPhase: Math.random() * Math.PI * 2
+            });
+            this.nextMilestone += 320 + Math.random() * 120;
+          } else {
+            const y = terrain.getHeight(this.lastGeneratedX) - 22;
+            this.items.push({
+              type: 'milk',
+              x: this.lastGeneratedX,
+              y: y,
+              collected: false,
+              bobPhase: Math.random() * Math.PI * 2
+            });
+          }
+        }
+
+        this.items = this.items.filter(item => item.x > carX - 600 && !item.collected);
+      }
+
+      checkCollisions(car, onCollectMilk, onCollectFuel) {
+        const hitRadius = 38;
+        for (const item of this.items) {
+          if (item.collected) continue;
+          const dist = Math.hypot(item.x - car.x, item.y - car.y);
+          if (dist < hitRadius) {
+            item.collected = true;
+            if (item.type === 'milk') {
+              onCollectMilk(item);
+            } else if (item.type === 'fuel') {
+              onCollectFuel(item);
+            }
+          }
+        }
+      }
+
+      draw(ctx, time) {
+        for (const item of this.items) {
+          if (item.collected) continue;
+          const floatOffset = Math.sin(time * 4 + item.bobPhase) * 5;
+          const y = item.y + floatOffset;
+
+          ctx.save();
+          ctx.translate(item.x, y);
+
+          if (item.type === 'milk') {
+            ctx.shadowColor = 'rgba(255, 255, 255, 0.6)';
+            ctx.shadowBlur = 8;
+
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.roundRect(-8, -14, 16, 26, 4);
+            ctx.fill();
+
+            ctx.fillStyle = '#0288d1';
+            ctx.fillRect(-8, -4, 16, 8);
+
+            ctx.fillStyle = '#0288d1';
+            ctx.beginPath();
+            ctx.roundRect(-5, -18, 10, 4, 1.5);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 6px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('MILK', 0, 2);
+
+          } else if (item.type === 'fuel') {
+            ctx.shadowColor = 'rgba(239, 68, 68, 0.7)';
+            ctx.shadowBlur = 12;
+
+            ctx.fillStyle = '#d32f2f';
+            ctx.strokeStyle = '#b71c1c';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(-12, -14, 24, 28, 5);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.strokeStyle = '#ef5350';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.moveTo(-6, -6);
+            ctx.lineTo(6, 6);
+            ctx.moveTo(6, -6);
+            ctx.lineTo(-6, 6);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#b71c1c';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(-8, -14);
+            ctx.lineTo(-8, -20);
+            ctx.lineTo(8, -20);
+            ctx.lineTo(8, -14);
+            ctx.stroke();
+
+            ctx.fillStyle = '#fbc02d';
+            ctx.fillRect(4, -22, 5, 4);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 7px Fredoka One, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('GAS', 0, 11);
+          }
+
+          ctx.restore();
+        }
+      }
+    }
+
+    /* =====================================================================
+       PARTICLES & VISUAL FX (Exhaust, Confetti, Floating Texts)
+       ===================================================================== */
+    class FXManager {
+      constructor() {
+        this.particles = [];
+        this.floatingTexts = [];
+      }
+
+      reset() {
+        this.particles = [];
+        this.floatingTexts = [];
+      }
+
+      spawnExhaust(x, y, angle) {
+        if (Math.random() > 0.4) return;
+        const speed = -40 - Math.random() * 30;
+        const spread = (Math.random() - 0.5) * 0.4;
+        this.particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle + spread) * speed,
+          vy: Math.sin(angle + spread) * speed - 15,
+          radius: 3 + Math.random() * 3,
+          maxLife: 0.5,
+          life: 0.5,
+          color: 'rgba(200, 200, 200,'
+        });
+      }
+
+      spawnFloatingText(text, x, y, color = '#facc15') {
+        this.floatingTexts.push({
+          text,
+          x,
+          y,
+          color,
+          life: 1.0,
+          maxLife: 1.0
+        });
+      }
+
+      update(dt) {
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          const p = this.particles[i];
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.radius += dt * 8;
+          p.life -= dt;
+          if (p.life <= 0) this.particles.splice(i, 1);
+        }
+
+        for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+          const t = this.floatingTexts[i];
+          t.y -= dt * 45;
+          t.life -= dt;
+          if (t.life <= 0) this.floatingTexts.splice(i, 1);
+        }
+      }
+
+      draw(ctx) {
+        for (const p of this.particles) {
+          const alpha = p.life / p.maxLife;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          ctx.fillStyle = `${p.color} ${alpha * 0.5})`;
+          ctx.fill();
+        }
+
+        ctx.save();
+        ctx.font = 'bold 16px "Fredoka One", sans-serif';
+        ctx.textAlign = 'center';
+        for (const t of this.floatingTexts) {
+          const alpha = t.life / t.maxLife;
+          ctx.fillStyle = t.color;
+          ctx.globalAlpha = alpha;
+          ctx.shadowColor = 'rgba(0,0,0,0.8)';
+          ctx.shadowBlur = 4;
+          ctx.fillText(t.text, t.x, t.y);
+        }
+        ctx.restore();
+      }
+    }
+
+    /* =====================================================================
+       MAIN GAME CONTROLLER
+       ===================================================================== */
+    class Game {
+      constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+
+        this.terrain = new Terrain();
+        this.car = new ClimberCar();
+        this.collectibles = new CollectibleManager();
+        this.fx = new FXManager();
+
+        this.state = 'START';
+
+        this.score = 0;
+        this.milkCount = 0;
+        this.quizCorrectCount = 0;
+        this.distanceTraveled = 0;
+        this.maxDistance = 0;
+
+        this.camera = { x: 0, y: 0, scale: 1.0, targetScale: 1.0 };
+        this.controls = { gas: false, brake: false };
+
+        this.tempImageData = '';
+        this.tempQuestionAudio = '';
+        this.tempOptionAudios = ['', '', '', ''];
+
+        this.lastTime = 0;
+        this.gameTime = 0;
+
+        this.initDOM();
+        this.bindEvents();
+        this.resize();
+      }
+
+      initDOM() {
+        this.hudDistance = document.getElementById('hud-distance');
+        this.hudMilk = document.getElementById('hud-milk');
+        this.hudScore = document.getElementById('hud-score');
+        this.hudFuelBar = document.getElementById('hud-fuel-bar');
+        this.hudFuelPct = document.getElementById('hud-fuel-pct');
+        this.hudSpeed = document.getElementById('hud-speed');
+
+        this.startScreen = document.getElementById('start-screen');
+        this.quizModal = document.getElementById('quiz-modal');
+        this.editorModal = document.getElementById('editor-modal');
+        this.gameOverModal = document.getElementById('gameover-modal');
+
+        this.btnStart = document.getElementById('btn-start');
+        this.btnRestart = document.getElementById('btn-restart');
+        this.btnSound = document.getElementById('btn-sound');
+        this.soundIcon = document.getElementById('sound-icon');
+        this.btnGas = document.getElementById('btn-gas');
+        this.btnBrake = document.getElementById('btn-brake');
+        this.btnQuizBank = document.getElementById('btn-quiz-bank');
+        this.btnCustomStart = document.getElementById('btn-custom-start');
+        this.btnCloseEditor = document.getElementById('btn-close-editor');
+        this.btnSaveEditor = document.getElementById('btn-save-editor');
+        this.btnAddQuestion = document.getElementById('btn-add-question');
+        this.btnResetQuestions = document.getElementById('btn-reset-questions');
+        this.editorList = document.getElementById('editor-questions-list');
+
+        this.editFormModal = document.getElementById('edit-form-modal');
+        this.questionForm = document.getElementById('question-form');
+        this.formModalTitle = document.getElementById('form-modal-title');
+        this.formEditIndex = document.getElementById('form-edit-index');
+        this.formCategory = document.getElementById('form-category');
+        this.formPrompt = document.getElementById('form-prompt');
+        this.formImgUrl = document.getElementById('form-img-url');
+        this.formImgFile = document.getElementById('form-img-file');
+        this.formImgPreviewContainer = document.getElementById('form-img-preview-container');
+        this.formImgPreview = document.getElementById('form-img-preview');
+        this.btnRemoveFormImg = document.getElementById('btn-remove-form-img');
+        this.btnCloseFormModal = document.getElementById('btn-close-form-modal');
+        this.btnCancelQuestionForm = document.getElementById('btn-cancel-question-form');
+        this.btnExportJson = document.getElementById('btn-export-json');
+        this.importJsonInput = document.getElementById('import-json-input');
+
+        this.imageLightbox = document.getElementById('image-lightbox');
+        this.lightboxImg = document.getElementById('lightbox-img');
+        this.quizImageContainer = document.getElementById('quiz-image-container');
+        this.quizImage = document.getElementById('quiz-image');
+      }
+
+      bindEvents() {
+        window.addEventListener('resize', () => this.resize());
+
+        setTruckAcceleration(truckAccelerationMultiplier);
+        setQuestionMode(currentQuestionMode);
+        populateVoiceSelector();
+
+        const startModeSelect = document.getElementById('start-mode-select');
+        const editorModeSelect = document.getElementById('editor-mode-select');
+        if (startModeSelect) {
+          startModeSelect.addEventListener('change', (e) => {
+            setQuestionMode(e.target.value);
+          });
+        }
+        if (editorModeSelect) {
+          editorModeSelect.addEventListener('change', (e) => {
+            setQuestionMode(e.target.value);
+            this.renderEditorList();
+          });
+        }
+
+        const formQuestionType = document.getElementById('form-question-type');
+        if (formQuestionType) {
+          formQuestionType.addEventListener('change', (e) => {
+            this.toggleFormOptionsVisibility(e.target.value);
+          });
+        }
+
+        const voiceSelector = document.getElementById('voice-selector');
+        if (voiceSelector) {
+          voiceSelector.addEventListener('change', (e) => {
+            preferredVoiceURI = e.target.value;
+            localStorage.setItem('edu_climber_voice_uri', preferredVoiceURI);
+            sounds.speakText("Hello! Ready for your mountain climb review.");
+          });
+        }
+
+        const btnTestVoiceSelect = document.getElementById('btn-test-voice-select');
+        if (btnTestVoiceSelect) {
+          btnTestVoiceSelect.addEventListener('click', () => {
+            sounds.speakText("Hello! Ready for your mountain climb review.");
+          });
+        }
+
+        const toggleAutoRead = document.getElementById('toggle-auto-read');
+        if (toggleAutoRead) {
+          toggleAutoRead.checked = autoReadAloudEnabled;
+          toggleAutoRead.addEventListener('change', (e) => {
+            autoReadAloudEnabled = e.target.checked;
+            localStorage.setItem('edu_climber_autoread', autoReadAloudEnabled.toString());
+            if (!autoReadAloudEnabled) sounds.stopQuizAudio();
+          });
+        }
+
+        const startAccelSlider = document.getElementById('start-accel-slider');
+        if (startAccelSlider) {
+          startAccelSlider.addEventListener('input', (e) => {
+            setTruckAcceleration(e.target.value);
+          });
+        }
+
+        const editorAccelSlider = document.getElementById('editor-accel-slider');
+        if (editorAccelSlider) {
+          editorAccelSlider.addEventListener('input', (e) => {
+            setTruckAcceleration(e.target.value);
+          });
+        }
+
+        // Keyboard Controls
+        window.addEventListener('keydown', (e) => {
+          if (this.state !== 'PLAYING') return;
+          if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+            this.controls.gas = true;
+            if (this.btnGas) this.btnGas.classList.add('active');
+          }
+          if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+            this.controls.brake = true;
+            if (this.btnBrake) this.btnBrake.classList.add('active');
+          }
+        });
+
+        window.addEventListener('keyup', (e) => {
+          if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+            this.controls.gas = false;
+            if (this.btnGas) this.btnGas.classList.remove('active');
+          }
+          if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+            this.controls.brake = false;
+            if (this.btnBrake) this.btnBrake.classList.remove('active');
+          }
+        });
+
+        // Touch / Click Gas & Brake Pedals
+        const setupPedal = (element, keyProp) => {
+          if (!element) return;
+          const activate = (e) => {
+            e.preventDefault();
+            sounds.init();
+            this.controls[keyProp] = true;
+            element.classList.add('active');
+          };
+          const deactivate = (e) => {
+            e.preventDefault();
+            this.controls[keyProp] = false;
+            element.classList.remove('active');
+          };
+          element.addEventListener('pointerdown', activate);
+          element.addEventListener('pointerup', deactivate);
+          element.addEventListener('pointerleave', deactivate);
+          element.addEventListener('pointercancel', deactivate);
+        };
+
+        setupPedal(this.btnGas, 'gas');
+        setupPedal(this.btnBrake, 'brake');
+
+        // Start & Restart buttons
+        if (this.btnStart) {
+          this.btnStart.addEventListener('click', () => {
+            sounds.init();
+            this.startGame();
+          });
+        }
+
+        if (this.btnRestart) {
+          this.btnRestart.addEventListener('click', () => {
+            sounds.init();
+            this.startGame();
+          });
+        }
+
+        // Sound Toggle
+        if (this.btnSound) {
+          this.btnSound.addEventListener('click', () => {
+            sounds.init();
+            sounds.enabled = !sounds.enabled;
+            if (this.soundIcon) this.soundIcon.textContent = sounds.enabled ? '🔊' : '🔇';
+            if (!sounds.enabled) sounds.stopEngine();
+          });
+        }
+
+        // Quiz Bank Editor Buttons
+        if (this.btnQuizBank) this.btnQuizBank.addEventListener('click', () => this.openEditor());
+        if (this.btnCustomStart) this.btnCustomStart.addEventListener('click', () => this.openEditor());
+        if (this.btnCloseEditor) this.btnCloseEditor.addEventListener('click', () => this.closeEditor());
+        if (this.btnSaveEditor) this.btnSaveEditor.addEventListener('click', () => this.closeEditor());
+        if (this.btnAddQuestion) this.btnAddQuestion.addEventListener('click', () => this.openQuestionForm(-1));
+        if (this.btnResetQuestions) {
+          this.btnResetQuestions.addEventListener('click', () => {
+            if (this.btnResetQuestions.dataset.confirming === 'true') {
+              questionBank = JSON.parse(JSON.stringify(ALL_DEFAULT_QUESTIONS));
+              saveQuestions();
+              this.renderEditorList();
+              this.btnResetQuestions.dataset.confirming = 'false';
+              this.btnResetQuestions.textContent = 'Reset Defaults';
+              this.btnResetQuestions.classList.remove('bg-amber-600', 'text-white');
+            } else {
+              this.btnResetQuestions.dataset.confirming = 'true';
+              this.btnResetQuestions.textContent = 'Click again to Reset!';
+              this.btnResetQuestions.classList.add('bg-amber-600', 'text-white');
+              setTimeout(() => {
+                this.btnResetQuestions.dataset.confirming = 'false';
+                this.btnResetQuestions.textContent = 'Reset Defaults';
+                this.btnResetQuestions.classList.remove('bg-amber-600', 'text-white');
+              }, 3000);
+            }
+          });
+        }
+
+        // Form handling
+        if (this.btnCloseFormModal) this.btnCloseFormModal.addEventListener('click', () => this.closeQuestionForm());
+        if (this.btnCancelQuestionForm) this.btnCancelQuestionForm.addEventListener('click', () => this.closeQuestionForm());
+        if (this.questionForm) this.questionForm.addEventListener('submit', (e) => this.handleSaveQuestionForm(e));
+
+        const btnDeleteInForm = document.getElementById('btn-delete-in-form');
+        if (btnDeleteInForm) {
+          btnDeleteInForm.addEventListener('click', () => {
+            const editIdx = parseInt(this.formEditIndex.value, 10);
+            if (editIdx >= 0 && editIdx < questionBank.length) {
+              if (questionBank.length <= 1) {
+                btnDeleteInForm.textContent = '⚠️ Need at least 1 question!';
+                setTimeout(() => { btnDeleteInForm.textContent = '🗑️ Delete Question'; }, 2000);
+                return;
+              }
+              questionBank.splice(editIdx, 1);
+              saveQuestions();
+              this.closeQuestionForm();
+              this.renderEditorList();
+            }
+          });
+        }
+
+        // Form Image Upload / URL Handlers
+        if (this.formImgUrl) {
+          this.formImgUrl.addEventListener('input', () => {
+            const url = this.formImgUrl.value.trim();
+            if (url) {
+              this.tempImageData = url;
+              this.showFormImagePreview(url);
+            } else if (!this.formImgFile.files.length) {
+              this.tempImageData = '';
+              this.hideFormImagePreview();
+            }
+          });
+        }
+
+        if (this.formImgFile) {
+          this.formImgFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = (ev) => {
+                this.tempImageData = ev.target.result;
+                this.formImgUrl.value = '';
+                this.showFormImagePreview(this.tempImageData);
+              };
+              reader.readAsDataURL(file);
+            }
+          });
+        }
+
+        if (this.btnRemoveFormImg) {
+          this.btnRemoveFormImg.addEventListener('click', () => {
+            this.tempImageData = '';
+            this.formImgUrl.value = '';
+            this.formImgFile.value = '';
+            this.hideFormImagePreview();
+          });
+        }
+
+        // Clipboard Paste Image Support
+        window.addEventListener('paste', (e) => {
+          if (!this.editFormModal || this.editFormModal.classList.contains('hidden')) return;
+          const items = e.clipboardData?.items;
+          if (!items) return;
+
+          for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+              const file = items[i].getAsFile();
+              if (file) {
+                e.preventDefault();
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                  this.tempImageData = ev.target.result;
+                  this.formImgUrl.value = '';
+                  this.formImgFile.value = '';
+                  this.showFormImagePreview(this.tempImageData);
+                };
+                reader.readAsDataURL(file);
+              }
+              break;
+            }
+          }
+        });
+
+        // Auto-read typed words in the Question Editor
+        let typingReadTimer = null;
+        const scheduleEditorReadAloud = (text) => {
+          if (!autoReadAloudEnabled || !text || !text.trim()) return;
+          clearTimeout(typingReadTimer);
+          typingReadTimer = setTimeout(() => {
+            sounds.speakText(text.trim());
+          }, 850);
+        };
+
+        if (this.formPrompt) {
+          this.formPrompt.addEventListener('input', () => {
+            scheduleEditorReadAloud(this.formPrompt.value);
+          });
+        }
+
+        for (let i = 0; i < 4; i++) {
+          const optInput = document.getElementById(`form-opt-${i}`);
+          if (optInput) {
+            optInput.addEventListener('input', () => {
+              const letter = ['A', 'B', 'C', 'D'][i];
+              scheduleEditorReadAloud(`${letter}: ${optInput.value}`);
+            });
+          }
+        }
+
+        // Question Audio URL & File Handlers
+        const formQAudioUrl = document.getElementById('form-q-audio-url');
+        if (formQAudioUrl) {
+          formQAudioUrl.addEventListener('input', (e) => {
+            const url = e.target.value.trim();
+            const qAudioFile = document.getElementById('form-q-audio-file');
+            if (url) {
+              this.tempQuestionAudio = url;
+              document.getElementById('form-q-audio-status').classList.remove('hidden');
+            } else if (!qAudioFile || !qAudioFile.files.length) {
+              this.tempQuestionAudio = '';
+              document.getElementById('form-q-audio-status').classList.add('hidden');
+            }
+          });
+        }
+
+        const formQAudioFile = document.getElementById('form-q-audio-file');
+        if (formQAudioFile) {
+          formQAudioFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = (ev) => {
+                this.tempQuestionAudio = ev.target.result;
+                if (formQAudioUrl) formQAudioUrl.value = '';
+                document.getElementById('form-q-audio-status').classList.remove('hidden');
+              };
+              reader.readAsDataURL(file);
+            }
+          });
+        }
+
+        const btnRemoveQAudio = document.getElementById('btn-remove-q-audio');
+        if (btnRemoveQAudio) {
+          btnRemoveQAudio.addEventListener('click', () => {
+            this.tempQuestionAudio = '';
+            if (formQAudioUrl) formQAudioUrl.value = '';
+            if (formQAudioFile) formQAudioFile.value = '';
+            document.getElementById('form-q-audio-status').classList.add('hidden');
+          });
+        }
+
+        const btnTestQAudio = document.getElementById('btn-test-q-audio');
+        if (btnTestQAudio) {
+          btnTestQAudio.addEventListener('click', () => {
+            sounds.playQuizClip(this.tempQuestionAudio, this.formPrompt.value.trim());
+          });
+        }
+
+        // Answer Option Audio Handlers
+        document.querySelectorAll('.opt-audio-file').forEach(input => {
+          input.addEventListener('change', (e) => {
+            const idx = parseInt(input.dataset.optIdx, 10);
+            const file = e.target.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = (ev) => {
+                this.tempOptionAudios[idx] = ev.target.result;
+                document.getElementById(`form-opt-audio-badge-${idx}`).classList.remove('hidden');
+              };
+              reader.readAsDataURL(file);
+            }
+          });
+        });
+
+        document.querySelectorAll('.btn-clear-opt-audio').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.optIdx, 10);
+            this.tempOptionAudios[idx] = '';
+            document.getElementById(`form-opt-audio-file-${idx}`).value = '';
+            document.getElementById(`form-opt-audio-badge-${idx}`).classList.add('hidden');
+          });
+        });
+
+        document.querySelectorAll('.btn-test-opt-audio').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.optIdx, 10);
+            const optText = document.getElementById(`form-opt-${idx}`).value.trim();
+            sounds.playQuizClip(this.tempOptionAudios[idx], optText);
+          });
+        });
+
+        // JSON Import & Export
+        if (this.btnExportJson) this.btnExportJson.addEventListener('click', () => this.exportQuestionsJson());
+        if (this.importJsonInput) this.importJsonInput.addEventListener('change', (e) => this.importQuestionsJson(e));
+
+        // Lightbox Zoom Click Listeners
+        const triggerZoom = () => {
+          if (this.quizImage && this.quizImage.src) {
+            this.lightboxImg.src = this.quizImage.src;
+            this.imageLightbox.classList.remove('hidden');
+          }
+        };
+
+        if (this.quizImage) this.quizImage.addEventListener('click', triggerZoom);
+        const btnQuizZoom = document.getElementById('btn-quiz-zoom');
+        if (btnQuizZoom) btnQuizZoom.addEventListener('click', triggerZoom);
+
+        if (this.imageLightbox) {
+          this.imageLightbox.addEventListener('click', () => {
+            this.imageLightbox.classList.add('hidden');
+            this.lightboxImg.src = '';
+          });
+        }
+
+        // Preset button listeners for question creator
+        document.querySelectorAll('.preset-pick-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const presetKey = btn.getAttribute('data-preset');
+            if (PRESET_GRAPHICS[presetKey]) {
+              this.tempImageData = PRESET_GRAPHICS[presetKey];
+              this.formImgUrl.value = '';
+              this.formImgFile.value = '';
+              this.showFormImagePreview(this.tempImageData);
+            }
+          });
+        });
+
+        // Continue button on quiz
+        const btnQuizContinue = document.getElementById('btn-quiz-continue');
+        if (btnQuizContinue) {
+          btnQuizContinue.addEventListener('click', () => {
+            this.resumeAfterQuiz();
+          });
+        }
+      }
+
+      showFormImagePreview(src) {
+        this.formImgPreview.src = src;
+        this.formImgPreviewContainer.classList.remove('hidden');
+      }
+
+      hideFormImagePreview() {
+        this.formImgPreview.src = '';
+        this.formImgPreviewContainer.classList.add('hidden');
+      }
+
+      resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+      }
+
+      startGame() {
+        this.state = 'PLAYING';
+        if (this.startScreen) this.startScreen.classList.add('hidden');
+        if (this.gameOverModal) this.gameOverModal.classList.add('hidden');
+        if (this.quizModal) this.quizModal.classList.add('hidden');
+
+        this.score = 0;
+        this.milkCount = 0;
+        this.quizCorrectCount = 0;
+        this.distanceTraveled = 0;
+        this.maxDistance = 0;
+
+        this.terrain.reset();
+        this.car.reset();
+        this.car.y = this.terrain.getHeight(this.car.x) - 40;
+        this.collectibles.reset();
+        this.fx.reset();
+
+        this.camera.x = this.car.x;
+        this.camera.y = this.car.y;
+
+        this.updateHUD();
+      }
+
+      triggerFuelQuiz() {
+        sounds.playFuelChime();
+        this.state = 'QUIZ';
+        this.controls.gas = false;
+        this.controls.brake = false;
+        if (this.btnGas) this.btnGas.classList.remove('active');
+        if (this.btnBrake) this.btnBrake.classList.remove('active');
+        sounds.stopEngine();
+
+        const activePool = getActiveQuestionPool();
+        const questionObj = activePool[Math.floor(Math.random() * activePool.length)] || DEFAULT_QUESTIONS[0];
+        this.currentQuiz = questionObj;
+
+        const modal = document.getElementById('quiz-modal');
+        const qCategory = document.getElementById('quiz-category');
+        const qText = document.getElementById('quiz-question-text');
+        const optionsContainer = document.getElementById('quiz-options-container');
+        const oralContainer = document.getElementById('quiz-oral-container');
+        const btnRevealOral = document.getElementById('btn-reveal-oral-answer');
+        const btnOralCorrect = document.getElementById('btn-oral-correct');
+        const btnOralIncorrect = document.getElementById('btn-oral-incorrect');
+        const feedback = document.getElementById('quiz-feedback');
+        const btnContinue = document.getElementById('btn-quiz-continue');
+
+        qCategory.textContent = questionObj.category || "Landforms";
+        qText.textContent = questionObj.question;
+        feedback.classList.add('hidden');
+        btnContinue.classList.add('hidden');
+        optionsContainer.innerHTML = '';
+
+        const isOpenEnded = questionObj.type === 'open' || !Array.isArray(questionObj.options) || questionObj.options.length === 0;
+        const imgSrc = questionObj.image && questionObj.image.trim() !== "" ? questionObj.image : PRESET_GRAPHICS.mountain;
+        this.quizImage.src = imgSrc;
+
+        const btnPlayQuestionAudio = document.getElementById('btn-play-question-audio');
+        const spokenQuestionText = questionObj.question.replace(/_+/g, 'blank');
+        btnPlayQuestionAudio.onclick = () => {
+          sounds.playQuizClip(questionObj.questionAudio, spokenQuestionText);
+        };
+        if (autoReadAloudEnabled || questionObj.questionAudio) {
+          sounds.playQuizClip(questionObj.questionAudio, spokenQuestionText);
+        }
+
+        if (isOpenEnded) {
+          // Mode 2: No multiple-choice options for the kids to choose from
+          optionsContainer.classList.add('hidden');
+          oralContainer.classList.remove('hidden');
+          // Hide picture initially so students answer from the prompt; reveal on button click
+          this.quizImageContainer.classList.add('hidden');
+
+          btnRevealOral.disabled = false;
+          btnOralCorrect.disabled = false;
+          btnOralIncorrect.disabled = false;
+
+          btnRevealOral.onclick = () => {
+            this.quizImageContainer.classList.remove('hidden');
+            feedback.className = "p-3.5 rounded-2xl text-sm font-bold text-center mb-4 bg-sky-950/80 border border-sky-400/40 text-sky-200";
+            feedback.innerHTML = `💡 <strong>Answer:</strong> ${questionObj.explanation || 'Great job!'}`;
+            feedback.classList.remove('hidden');
+            if (autoReadAloudEnabled && questionObj.explanation) {
+              sounds.speakText(questionObj.explanation);
+            }
+          };
+
+          btnOralCorrect.onclick = () => {
+            btnRevealOral.disabled = true;
+            btnOralCorrect.disabled = true;
+            btnOralIncorrect.disabled = true;
+            this.quizImageContainer.classList.remove('hidden');
+            sounds.playCorrectFanfare();
+            this.createConfetti();
+
+            this.quizCorrectCount++;
+            this.car.fuel = 100;
+            this.score += 500;
+            this.fx.spawnFloatingText('+500 REFUEL 100%!', this.car.x, this.car.y - 70, '#4ade80');
+
+            feedback.className = "p-3.5 rounded-2xl text-sm font-bold text-center mb-4 bg-emerald-950/80 border border-emerald-500/40 text-emerald-300";
+            feedback.innerHTML = `🎉 <strong>AWESOME!</strong> "${questionObj.explanation || ''}" — Full fuel restored! +500 Points!`;
+            feedback.classList.remove('hidden');
+            btnContinue.classList.remove('hidden');
+          };
+
+          btnOralIncorrect.onclick = () => {
+            btnRevealOral.disabled = true;
+            btnOralCorrect.disabled = true;
+            btnOralIncorrect.disabled = true;
+            this.quizImageContainer.classList.remove('hidden');
+            sounds.playBuzzer();
+
+            this.car.fuel = Math.min(100, this.car.fuel + 35);
+            feedback.className = "p-3.5 rounded-2xl text-sm font-bold text-center mb-4 bg-amber-950/80 border border-amber-500/40 text-amber-200";
+            feedback.innerHTML = `📖 <strong>LET'S REVIEW:</strong> <em>${questionObj.explanation || ''}</em><br><span class="text-xs text-yellow-300 mt-1 inline-block">+35% Emergency fuel provided. Keep climbing!</span>`;
+            feedback.classList.remove('hidden');
+            btnContinue.classList.remove('hidden');
+          };
+        } else {
+          // Mode 1: Standard 4 Multiple Choice Options
+          optionsContainer.classList.remove('hidden');
+          oralContainer.classList.add('hidden');
+          this.quizImageContainer.classList.remove('hidden');
+
+          const displayOrder = [0, 2, 1, 3];
+
+          displayOrder.forEach((originalIdx) => {
+            const opt = questionObj.options[originalIdx];
+            const optAudio = questionObj.optionAudios ? questionObj.optionAudios[originalIdx] : '';
+            const letter = ['A', 'B', 'C', 'D'][originalIdx];
+            const btn = document.createElement('button');
+            btn.className = "w-full text-left p-3 sm:p-3.5 rounded-2xl bg-neutral-800 hover:bg-neutral-700 active:scale-98 border-2 border-white/10 text-white font-bold text-xs sm:text-sm flex items-start justify-between gap-2 transition-all group";
+            btn.dataset.originalIndex = originalIdx;
+            btn.innerHTML = `
+              <div class="flex items-start gap-2.5 min-w-0 flex-1">
+                <span class="w-7 h-7 rounded-xl bg-neutral-700 flex items-center justify-center text-xs font-black text-amber-300 group-hover:bg-amber-400 group-hover:text-neutral-900 transition-colors shrink-0 mt-0.5">${letter}</span>
+                <span class="break-words whitespace-normal leading-snug flex-1">${opt}</span>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0 mt-0.5">
+                <span class="btn-opt-speaker p-1.5 rounded-lg bg-neutral-700/80 hover:bg-sky-500 text-sky-300 hover:text-white transition-colors" title="Listen to option ${letter}">🔊</span>
+                <span class="text-neutral-500 group-hover:text-white transition-colors">➔</span>
+              </div>
+            `;
+
+            const speakerIcon = btn.querySelector('.btn-opt-speaker');
+            speakerIcon.addEventListener('click', (e) => {
+              e.stopPropagation();
+              sounds.playQuizClip(optAudio, `${letter}. ${opt}`);
+            });
+
+            btn.addEventListener('click', () => this.handleQuizAnswer(originalIdx, btn, optionsContainer, feedback, btnContinue));
+            optionsContainer.appendChild(btn);
+          });
+        }
+
+        modal.classList.remove('hidden');
+      }
+
+      handleQuizAnswer(selectedIndex, clickedBtn, container, feedback, continueBtn) {
+        const buttons = container.querySelectorAll('button');
+        buttons.forEach(b => b.disabled = true);
+
+        const isCorrect = selectedIndex === this.currentQuiz.correctIndex;
+
+        if (isCorrect) {
+          sounds.playCorrectFanfare();
+          clickedBtn.classList.remove('bg-neutral-800', 'border-white/10');
+          clickedBtn.classList.add('bg-emerald-600', 'border-emerald-400');
+          this.createConfetti();
+
+          this.quizCorrectCount++;
+          this.car.fuel = 100;
+          this.score += 500;
+          this.fx.spawnFloatingText('+500 REFUEL 100%!', this.car.x, this.car.y - 70, '#4ade80');
+
+          feedback.className = "p-3.5 rounded-2xl text-sm font-bold text-center mb-4 bg-emerald-950/80 border border-emerald-500/40 text-emerald-300";
+          feedback.innerHTML = `🎉 <strong>CORRECT!</strong> Full fuel restored! +500 Bonus Points!`;
+        } else {
+          sounds.playBuzzer();
+          clickedBtn.classList.remove('bg-neutral-800', 'border-white/10');
+          clickedBtn.classList.add('bg-red-600', 'border-red-400');
+
+          buttons.forEach(b => {
+            if (parseInt(b.dataset.originalIndex, 10) === this.currentQuiz.correctIndex) {
+              b.classList.remove('bg-neutral-800');
+              b.classList.add('bg-emerald-800', 'border-emerald-500');
+            }
+          });
+
+          this.car.fuel = Math.min(100, this.car.fuel + 35);
+          feedback.className = "p-3.5 rounded-2xl text-sm font-bold text-center mb-4 bg-red-950/80 border border-red-500/40 text-red-200";
+          feedback.innerHTML = `⚠️ <strong>NOT QUITE!</strong> Correct was: <em>${this.currentQuiz.options[this.currentQuiz.correctIndex]}</em>.<br><span class="text-xs text-neutral-300">${this.currentQuiz.explanation || ''}</span><br><span class="text-xs text-yellow-300 mt-1 inline-block">+35% Emergency fuel provided. Keep climbing!</span>`;
+        }
+
+        feedback.classList.remove('hidden');
+        continueBtn.classList.remove('hidden');
+      }
+
+      createConfetti() {
+        const modal = document.getElementById('quiz-modal');
+        const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
+        for (let i = 0; i < 35; i++) {
+          const confetti = document.createElement('div');
+          confetti.className = 'confetti';
+          confetti.style.left = `${Math.random() * 90 + 5}%`;
+          confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+          confetti.style.width = `${Math.random() * 8 + 6}px`;
+          confetti.style.height = `${Math.random() * 12 + 6}px`;
+          confetti.style.animationDuration = `${Math.random() * 1.5 + 1.2}s`;
+          modal.appendChild(confetti);
+
+          setTimeout(() => confetti.remove(), 2500);
+        }
+      }
+
+      resumeAfterQuiz() {
+        sounds.stopQuizAudio();
+        this.quizModal.classList.add('hidden');
+        this.state = 'PLAYING';
+      }
+
+      gameOver(reason) {
+        sounds.playCrash();
+        sounds.stopEngine();
+        this.state = 'GAMEOVER';
+
+        const title = document.getElementById('gameover-title');
+        const icon = document.getElementById('gameover-icon');
+        const msg = document.getElementById('gameover-msg');
+
+        if (reason === 'fuel') {
+          icon.textContent = '⛽';
+          title.textContent = 'OUT OF FUEL!';
+          msg.textContent = 'Your fuel tank ran empty on the steep hills. Practice makes perfect!';
+        } else {
+          icon.textContent = '💥';
+          title.textContent = 'VEHICLE FLIPPED!';
+          msg.textContent = 'Bill crashed upside down! Mind your tilt using Gas and Brake in mid-air!';
+        }
+
+        document.getElementById('go-stat-distance').textContent = `${Math.floor(this.maxDistance)} m`;
+        document.getElementById('go-stat-milk').textContent = `${this.milkCount}`;
+        document.getElementById('go-stat-quiz').textContent = `${this.quizCorrectCount}`;
+        document.getElementById('go-stat-score').textContent = `${this.score}`;
+
+        this.gameOverModal.classList.remove('hidden');
+      }
+
+      updateHUD() {
+        this.hudDistance.textContent = `${Math.floor(this.maxDistance)} m`;
+        this.hudMilk.textContent = `${this.milkCount}`;
+        this.hudScore.textContent = `${this.score}`;
+
+        const fuelPct = Math.max(0, Math.min(100, Math.round(this.car.fuel)));
+        this.hudFuelPct.textContent = `${fuelPct}%`;
+        this.hudFuelBar.style.width = `${fuelPct}%`;
+
+        if (fuelPct < 25) {
+          this.hudFuelBar.classList.add('animate-pulse');
+        } else {
+          this.hudFuelBar.classList.remove('animate-pulse');
+        }
+
+        const kmh = Math.round(Math.abs(this.car.vx) * 0.12);
+        this.hudSpeed.innerHTML = `${kmh} <span class="text-xs text-white">km/h</span>`;
+      }
+
+      /* Question Editor UI Methods */
+      openEditor() {
+        this.renderEditorList();
+        this.editorModal.classList.remove('hidden');
+      }
+
+      closeEditor() {
+        this.editorModal.classList.add('hidden');
+        saveQuestions();
+      }
+
+      toggleFormOptionsVisibility(qType) {
+        const wrapper = document.getElementById('form-mc-options-wrapper');
+        const isOpen = qType === 'open';
+        if (wrapper) {
+          wrapper.classList.toggle('hidden', isOpen);
+        }
+        for (let i = 0; i < 4; i++) {
+          const inp = document.getElementById(`form-opt-${i}`);
+          if (inp) inp.required = !isOpen;
+        }
+      }
+
+      openQuestionForm(index = -1) {
+        this.formEditIndex.value = index;
+        this.formImgFile.value = '';
+        document.getElementById('form-q-audio-file').value = '';
+        const btnDeleteInForm = document.getElementById('btn-delete-in-form');
+        const explanationInput = document.getElementById('form-explanation');
+        const typeSelect = document.getElementById('form-question-type');
+
+        if (index >= 0 && questionBank[index]) {
+          if (btnDeleteInForm) {
+            btnDeleteInForm.classList.remove('hidden');
+            btnDeleteInForm.textContent = '🗑️ Delete Question';
+          }
+          const q = questionBank[index];
+          const isOpen = q.type === 'open' || !Array.isArray(q.options) || q.options.length === 0;
+          if (typeSelect) typeSelect.value = isOpen ? 'open' : 'mc';
+          this.toggleFormOptionsVisibility(isOpen ? 'open' : 'mc');
+
+          this.formModalTitle.textContent = `Edit Question #${index + 1}`;
+          this.formCategory.value = q.category || 'Landforms';
+          this.formPrompt.value = q.question || '';
+          this.tempImageData = q.image || '';
+          this.tempQuestionAudio = q.questionAudio || '';
+          this.tempOptionAudios = Array.isArray(q.optionAudios) ? [...q.optionAudios] : ['', '', '', ''];
+
+          if (this.tempQuestionAudio.startsWith('http')) {
+            document.getElementById('form-q-audio-url').value = this.tempQuestionAudio;
+          } else {
+            document.getElementById('form-q-audio-url').value = '';
+          }
+
+          if (this.tempQuestionAudio) {
+            document.getElementById('form-q-audio-status').classList.remove('hidden');
+          } else {
+            document.getElementById('form-q-audio-status').classList.add('hidden');
+          }
+
+          if (this.tempImageData.startsWith('http')) {
+            this.formImgUrl.value = this.tempImageData;
+          } else {
+            this.formImgUrl.value = '';
+          }
+
+          if (this.tempImageData) {
+            this.showFormImagePreview(this.tempImageData);
+          } else {
+            this.hideFormImagePreview();
+          }
+
+          for (let i = 0; i < 4; i++) {
+            document.getElementById(`form-opt-${i}`).value = (q.options && q.options[i]) || '';
+            document.getElementById(`form-opt-audio-file-${i}`).value = '';
+            const badge = document.getElementById(`form-opt-audio-badge-${i}`);
+            if (this.tempOptionAudios[i]) {
+              badge.classList.remove('hidden');
+            } else {
+              badge.classList.add('hidden');
+            }
+          }
+          const radio = document.querySelector(`input[name="form-correct-choice"][value="${q.correctIndex || 0}"]`);
+          if (radio) radio.checked = true;
+          if (explanationInput) explanationInput.value = q.explanation || '';
+        } else {
+          const defaultType = currentQuestionMode === 'definitions' ? 'open' : 'mc';
+          if (typeSelect) typeSelect.value = defaultType;
+          this.toggleFormOptionsVisibility(defaultType);
+
+          this.formModalTitle.textContent = "Add New Question";
+          this.formCategory.value = defaultType === 'open' ? "Landform Definitions (No Choices)" : "Landforms (Pictures)";
+          this.formPrompt.value = "";
+          this.tempImageData = "";
+          this.tempQuestionAudio = "";
+          this.tempOptionAudios = ['', '', '', ''];
+          this.formImgUrl.value = "";
+          document.getElementById('form-q-audio-url').value = "";
+          document.getElementById('form-q-audio-status').classList.add('hidden');
+          this.hideFormImagePreview();
+
+          for (let i = 0; i < 4; i++) {
+            document.getElementById(`form-opt-${i}`).value = "";
+            document.getElementById(`form-opt-audio-file-${i}`).value = '';
+            document.getElementById(`form-opt-audio-badge-${i}`).classList.add('hidden');
+          }
+          document.querySelector('input[name="form-correct-choice"][value="0"]').checked = true;
+          if (explanationInput) explanationInput.value = "";
+          if (btnDeleteInForm) btnDeleteInForm.classList.add('hidden');
+        }
+
+        this.editFormModal.classList.remove('hidden');
+      }
+
+      closeQuestionForm() {
+        sounds.stopQuizAudio();
+        this.editFormModal.classList.add('hidden');
+      }
+
+      handleSaveQuestionForm(e) {
+        e.preventDefault();
+        const editIdx = parseInt(this.formEditIndex.value, 10);
+        const typeSelect = document.getElementById('form-question-type');
+        const qType = typeSelect ? typeSelect.value : 'mc';
+        const isOpen = qType === 'open';
+        const correctRadio = document.querySelector('input[name="form-correct-choice"]:checked');
+        const correctIdx = correctRadio ? parseInt(correctRadio.value, 10) : 0;
+        const explanationInput = document.getElementById('form-explanation');
+
+        const newQ = {
+          type: qType,
+          set: isOpen ? 'definitions' : 'pictures',
+          category: this.formCategory.value.trim() || 'Landforms',
+          question: this.formPrompt.value.trim(),
+          questionAudio: this.tempQuestionAudio || '',
+          image: this.tempImageData || '',
+          options: isOpen ? [] : [
+            document.getElementById('form-opt-0').value.trim() || 'Option A',
+            document.getElementById('form-opt-1').value.trim() || 'Option B',
+            document.getElementById('form-opt-2').value.trim() || 'Option C',
+            document.getElementById('form-opt-3').value.trim() || 'Option D',
+          ],
+          optionAudios: isOpen ? [] : [...this.tempOptionAudios],
+          correctIndex: correctIdx,
+          explanation: explanationInput ? explanationInput.value.trim() : ''
+        };
+
+        if (editIdx >= 0 && editIdx < questionBank.length) {
+          questionBank[editIdx] = newQ;
+        } else {
+          questionBank.push(newQ);
+        }
+
+        saveQuestions();
+        this.closeQuestionForm();
+        this.renderEditorList();
+      }
+
+      exportQuestionsJson() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(questionBank, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", `climber_quiz_questions_${new Date().toISOString().slice(0,10)}.json`);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+      }
+
+      importQuestionsJson(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const imported = JSON.parse(event.target.result);
+            if (Array.isArray(imported) && imported.length > 0) {
+              questionBank = imported;
+              saveQuestions();
+              this.renderEditorList();
+            }
+          } catch (err) {
+            console.error("Error parsing JSON file:", err);
+          }
+          this.importJsonInput.value = '';
+        };
+        reader.readAsText(file);
+      }
+
+      renderEditorList() {
+        this.editorList.innerHTML = '';
+        questionBank.forEach((q, idx) => {
+          const isOpen = q.type === 'open' || !Array.isArray(q.options) || q.options.length === 0;
+          const item = document.createElement('div');
+          item.className = "bg-neutral-800 p-3 rounded-xl border border-white/10 text-xs text-white flex flex-col gap-2";
+          
+          const imgMarkup = q.image ? `<img src="${q.image}" class="h-12 w-16 rounded-lg object-contain bg-neutral-950 border border-white/20 shrink-0" alt="Thumb" />` : '<div class="h-12 w-16 bg-neutral-900 rounded-lg flex items-center justify-center text-neutral-500 font-bold text-[10px]">No Pic</div>';
+          const badgeMarkup = isOpen
+            ? `<span class="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded text-[10px] font-bold">No Choices / Oral</span>`
+            : `<span class="bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded text-[10px] font-bold">Multiple Choice</span>`;
+
+          const optionsOrAnswerMarkup = isOpen
+            ? `<div class="text-[11px] text-emerald-400 font-bold mt-0.5">Answer: ${q.explanation || '(Open oral response)'}</div>`
+            : `<div class="text-[11px] text-neutral-400 grid grid-cols-2 gap-1 mt-0.5">
+                ${q.options.map((opt, oIdx) => `<div class="${oIdx === q.correctIndex ? 'text-emerald-400 font-bold' : ''}">${['A','B','C','D'][oIdx]}: ${opt}</div>`).join('')}
+              </div>`;
+
+          item.innerHTML = `
+            <div class="flex items-center justify-between font-bold gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-yellow-400">#${idx + 1} [${q.category || 'Landforms'}]</span>
+                ${badgeMarkup}
+              </div>
+              <div class="flex gap-2 shrink-0">
+                <button type="button" class="btn-edit bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 font-extrabold px-2.5 py-1 rounded-lg border border-sky-400/30 transition-all">✏️ Edit</button>
+                <button type="button" class="btn-del bg-red-500/20 hover:bg-red-500/30 text-red-300 font-extrabold px-2.5 py-1 rounded-lg border border-red-400/30 transition-all">🗑️ Delete</button>
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              ${imgMarkup}
+              <p class="font-semibold text-neutral-200 flex-1">${q.question}</p>
+            </div>
+            ${optionsOrAnswerMarkup}
+          `;
+
+          item.querySelector('.btn-edit').addEventListener('click', () => {
+            this.openQuestionForm(idx);
+          });
+
+          const delBtn = item.querySelector('.btn-del');
+          delBtn.addEventListener('click', () => {
+            if (questionBank.length <= 1) {
+              delBtn.textContent = "⚠️ Min 1 required!";
+              setTimeout(() => { delBtn.textContent = "🗑️ Delete"; }, 2000);
+              return;
+            }
+            if (delBtn.dataset.confirming === 'true') {
+              questionBank.splice(idx, 1);
+              saveQuestions();
+              this.renderEditorList();
+            } else {
+              delBtn.dataset.confirming = 'true';
+              delBtn.textContent = "⚠️ Confirm Delete?";
+              delBtn.classList.remove('bg-red-500/20', 'text-red-300');
+              delBtn.classList.add('bg-red-600', 'text-white');
+              setTimeout(() => {
+                if (delBtn && delBtn.isConnected) {
+                  delBtn.dataset.confirming = 'false';
+                  delBtn.textContent = "🗑️ Delete";
+                  delBtn.classList.remove('bg-red-600', 'text-white');
+                  delBtn.classList.add('bg-red-500/20', 'text-red-300');
+                }
+              }, 3000);
+            }
+          });
+
+          this.editorList.appendChild(item);
+        });
+      }
+
+      /* Game Loop update & draw */
+      update(dt) {
+        if (this.state !== 'PLAYING') {
+          sounds.stopEngine();
+          return;
+        }
+
+        this.gameTime += dt;
+        this.car.update(dt, this.controls, this.terrain);
+
+        const currentDist = Math.max(0, (this.car.x - 80) / 10);
+        if (currentDist > this.maxDistance) {
+          const delta = currentDist - this.maxDistance;
+          this.maxDistance = currentDist;
+          this.score += Math.floor(delta * 2);
+        }
+
+        if (this.controls.gas) {
+          const cosA = Math.cos(this.car.angle);
+          const sinA = Math.sin(this.car.angle);
+          const exhaustX = this.car.x + (-46 * cosA - 10 * sinA);
+          const exhaustY = this.car.y + (-46 * sinA + 10 * cosA);
+          this.fx.spawnExhaust(exhaustX, exhaustY, this.car.angle + Math.PI);
+        }
+
+        this.collectibles.updateAndSpawn(this.car.x, this.terrain);
+        this.collectibles.checkCollisions(
+          this.car,
+          (item) => {
+            sounds.playMilkSound();
+            this.milkCount++;
+            this.score += 100;
+            this.fx.spawnFloatingText('+100 MILK 🥛', item.x, item.y - 20, '#38bdf8');
+          },
+          () => {
+            this.triggerFuelQuiz();
+          }
+        );
+
+        this.fx.update(dt);
+
+        const isDriving = (this.controls.gas || this.controls.brake || Math.abs(this.car.vx) > 8) && this.car.fuel > 0;
+        if (isDriving) {
+          const rpm = Math.abs(this.car.vx) / 300;
+          sounds.updateEngine(rpm, this.controls.gas || this.controls.brake);
+        } else {
+          sounds.stopEngine();
+        }
+
+        if (this.car.fuel <= 0 && Math.abs(this.car.vx) < 6) {
+          this.gameOver('fuel');
+        } else if (this.car.isFlipped) {
+          this.gameOver('flipped');
+        }
+
+        this.updateHUD();
+
+        const lookAhead = Math.min(220, this.car.vx * 0.45);
+        const targetCamX = this.car.x + lookAhead - this.canvas.width * 0.35;
+        const targetCamY = this.car.y - this.canvas.height * 0.58;
+
+        this.camera.x += (targetCamX - this.camera.x) * 0.08;
+        this.camera.y += (targetCamY - this.camera.y) * 0.08;
+      }
+
+      drawParallaxBackground() {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        const skyGrad = this.ctx.createLinearGradient(0, 0, 0, h);
+        skyGrad.addColorStop(0, '#53b8f6');
+        skyGrad.addColorStop(0.65, '#b3e5fc');
+        skyGrad.addColorStop(1, '#e0f7fa');
+        this.ctx.fillStyle = skyGrad;
+        this.ctx.fillRect(0, 0, w, h);
+
+        this.ctx.save();
+        this.ctx.fillStyle = '#fff9c4';
+        this.ctx.shadowColor = 'rgba(255, 238, 88, 0.6)';
+        this.ctx.shadowBlur = 40;
+        this.ctx.beginPath();
+        this.ctx.arc(w * 0.82, h * 0.22, 48, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.restore();
+
+        this.ctx.save();
+        const p1 = this.camera.x * 0.08;
+        this.ctx.fillStyle = '#90caf9';
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, h);
+        for (let x = 0; x <= w; x += 60) {
+          const worldX = x + p1;
+          const my = (h * 0.6) + Math.sin(worldX * 0.0015) * 110 + Math.sin(worldX * 0.004) * 45;
+          this.ctx.lineTo(x, my);
+        }
+        this.ctx.lineTo(w, h);
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.restore();
+
+        this.ctx.save();
+        const p2 = this.camera.x * 0.2;
+        this.ctx.fillStyle = '#81c784';
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, h);
+        for (let x = 0; x <= w; x += 40) {
+          const worldX = x + p2;
+          const my = (h * 0.72) + Math.sin(worldX * 0.003) * 80 + Math.sin(worldX * 0.007) * 35;
+          this.ctx.lineTo(x, my);
+        }
+        this.ctx.lineTo(w, h);
+        this.ctx.closePath();
+        this.ctx.fill();
+        this.ctx.restore();
+
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+        for (let i = 0; i < 5; i++) {
+          const cloudX = ((i * 450 - this.camera.x * 0.15 + this.gameTime * 12) % (w + 400)) - 150;
+          const cloudY = 70 + (i % 3) * 45;
+          this.drawCloud(cloudX, cloudY);
+        }
+      }
+
+      drawCloud(x, y) {
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, 24, 0, Math.PI * 2);
+        this.ctx.arc(x + 22, y - 10, 30, 0, Math.PI * 2);
+        this.ctx.arc(x + 50, y, 22, 0, Math.PI * 2);
+        this.ctx.arc(x + 28, y + 8, 20, 0, Math.PI * 2);
+        this.ctx.fill();
+      }
+
+      render() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        this.drawParallaxBackground();
+
+        this.ctx.save();
+        this.ctx.translate(-this.camera.x, -this.camera.y);
+
+        this.terrain.draw(this.ctx, this.camera.x, this.canvas.width, this.canvas.height);
+        this.collectibles.draw(this.ctx, this.gameTime);
+        this.fx.draw(this.ctx);
+        this.car.draw(this.ctx);
+
+        this.ctx.restore();
+      }
+
+      loop(timestamp) {
+        if (!this.lastTime) this.lastTime = timestamp;
+        const dt = Math.min(0.04, (timestamp - this.lastTime) / 1000);
+        this.lastTime = timestamp;
+
+        this.update(dt);
+        this.render();
+
+        requestAnimationFrame((t) => this.loop(t));
+      }
+    }
+
+    // Launch Game safely on DOM Ready or Window Load
+    function bootGame() {
+      if (window.__mountainClimberBooted) return;
+      window.__mountainClimberBooted = true;
+      const game = new Game();
+      requestAnimationFrame((t) => game.loop(t));
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bootGame);
+    } else {
+      bootGame();
+    }
+  </script>
+</body>
+</html>
